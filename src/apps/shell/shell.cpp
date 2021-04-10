@@ -84,7 +84,7 @@ void shell_app_s::console_char_recvd_callback(const void *data, size_t size) {
   } break;
 
   case SHELL_APP_FSM_STATE_WAITING: {
-    static constexpr const uint64_t pass_hash = hash_64_fnv1a_const("ktm690_SMC");
+    static constexpr const uint64_t pass_hash = hash_64_fnv1a_const("brewmaster");
     static char password_buffer[16u]{0x00};
 
     // Wait for password
