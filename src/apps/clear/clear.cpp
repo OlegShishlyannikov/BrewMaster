@@ -23,10 +23,6 @@ int32_t clear_app_s::clear_printfmt(const char *fmt, ...) {
   strlen = std::vsprintf(temp, fmt, arg);
   va_end(arg);
 
-  if (!debug_log_enabled) {
-    goto exit;
-  }
-
   if (!(usart = sys.drv("usart"))) {
     goto error;
   }
