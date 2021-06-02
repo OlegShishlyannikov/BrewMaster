@@ -1,7 +1,7 @@
--I/home/user/Projects/cheap_brewery/software/brewery/cmsis/inc
--I/home/user/Projects/cheap_brewery/software/brewery/spl/inc
--I/home/user/Projects/cheap_brewery/software/brewery/rtos/inc
--I/home/user/Projects/cheap_brewery/software/brewery/inc
+-I/home/user/Projects/bender/bender/cmsis/inc
+-I/home/user/Projects/bender/bender/spl/inc
+-I/home/user/Projects/bender/bender/rtos/inc
+-I/home/user/Projects/bender/bender/inc
 -isystem /usr/arm-none-eabi/include/
 -isystem /usr/arm-none-eabi/include/c++/10.2.0/
 -DSTM32F10X_XL

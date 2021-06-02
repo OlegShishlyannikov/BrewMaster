@@ -20,6 +20,7 @@
 #include "tasks/events_worker.hpp"
 #include "tasks/init_task.hpp"
 
+#include "apps/bender/bender.hpp"
 #include "apps/brewery/brewery.hpp"
 #include "apps/clear/clear.hpp"
 #include "apps/cowsay/cowsay.hpp"
@@ -45,9 +46,14 @@ auto &leds = make_drv<2u, struct leds_drv_name_s>(&leds_drv_ops, {&gpio, &usart}
 auto &hd44780 = make_drv<2u, struct hd44780_drv_name_s>(&hd44780_drv_ops, {&gpio, &usart});
 auto &w25qxx = make_drv<3u, struct w25qxx_drv_name_s>(&w25qxx_drv_ops, {&gpio, &spi, &usart});
 auto &ads1118 = make_drv<3u, struct ads1118_drv_name_s>(&ads1118_drv_ops, {&gpio, &spi, &usart});
+auto &ic74hc595 = make_drv<2u, struct ic74hc595_drv_name_s>(&ic74hc595_drv_ops, {&gpio, &usart});
+auto &uln2003 = make_drv<2u, struct uln2003_drv_name_s>(&uln2003_drv_ops, {&gpio, &usart});
+auto &zsp3806g2e = make_drv<3u, struct zsp3806g2e_drv_name_s>(&zsp3806g2e_drv_ops, {&gpio, &usart, &spi});
+auto &cl5621ah = make_drv<3u, struct cl5621ah_drv_name_s>(&cl5621ah_drv_ops, {&gpio, &usart, &ic74hc595});
 
 // Module array
-const struct drv_model_cmn_s *modules[]{&rcc, &gpio, &usart, &rtc, &buzzer, &tim, &spi, &ac_load, &relay_load, &buttons, &leds, &hd44780, &w25qxx, &ads1118};
+const struct drv_model_cmn_s *modules[]{&rcc,     &gpio, &usart,   &rtc,    &buzzer,  &tim,       &spi,     &ac_load,    &relay_load,
+                                        &buttons, &leds, &hd44780, &w25qxx, &ads1118, &ic74hc595, &uln2003, &zsp3806g2e, &cl5621ah};
 
 // Applications
 struct app_s shell_app = {.name = "shell", .entry = shell_app_s::entry};
@@ -56,12 +62,10 @@ struct app_s cowsay_app = {.name = "cowsay", .entry = cowsay_app_s::entry};
 struct app_s debug_app = {.name = "debug", .entry = debug_app_s::entry};
 struct app_s reboot_app = {.name = "reboot", .entry = reboot_app_s::entry};
 struct app_s brewery_app = {.name = "brewery", .entry = brewery_app_s::entry};
+struct app_s brewery_app = {.name = "bender", .entry = bender_app_s::entry};
 
 // Application array
-const struct app_s *apps[]{&shell_app, &clear_app, &cowsay_app, &debug_app, &reboot_app, &brewery_app};
-
-// Startup applications args
-static const char *startup_cl_args = "-f 1 -t 1 -p Hello_world! -i 999 -s 3.874837";
+const struct app_s *apps[]{&shell_app, &clear_app, &cowsay_app, &debug_app, &reboot_app, &brewery_app, &bender_app};
 
 /* Create System object and get reference */
 auto &sys = make_system(modules, sizeof(modules) / sizeof(modules[0u]), apps, sizeof(apps) / sizeof(apps[0u]));
@@ -74,12 +78,12 @@ void init() {
 
   // Init events worker
   ew.init();
-
+ 
   // Run events worker task
   xTaskCreate(events_worker_task_code, "events_worker_task", configMINIMAL_STACK_SIZE * 24u, &ew, 10u, &events_worker_task_handle);
 
   // Run init task
-  xTaskCreate(init_task_code, "init_task", configMINIMAL_STACK_SIZE * 6u, &startup_cl_args, 5u, &init_task_handle);
+  xTaskCreate(init_task_code, "init_task", configMINIMAL_STACK_SIZE * 6u, nullptr, 5u, &init_task_handle);
 }
 
 int main(int argc, char *argv[]) {

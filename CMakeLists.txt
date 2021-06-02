@@ -123,25 +123,31 @@ file(GLOB PROJECT_COWSAY_APP_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/cowsay/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/cowsay/*.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/cowsay/*.cxx"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/cowsay/*.s" CACHE INTERNAL "Project clear app sources")
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/cowsay/*.s" CACHE INTERNAL "Project cowsay app sources")
 
 file(GLOB PROJECT_BREWERY_APP_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/brewery/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/brewery/*.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/brewery/*.cxx"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/brewery/*.s" CACHE INTERNAL "Project clear app sources")
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/brewery/*.s" CACHE INTERNAL "Project brewery app sources")
+
+file(GLOB PROJECT_BENDER_APP_SOURCES
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/bender/*.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/bender/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/bender/*.cxx"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/bender/*.s" CACHE INTERNAL "Project bender app sources")
 
 file(GLOB PROJECT_DEBUG_APP_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/debug/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/debug/*.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/debug/*.cxx"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/debug/*.s" CACHE INTERNAL "Project clear app sources")
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/debug/*.s" CACHE INTERNAL "Project debug app sources")
 
 file(GLOB PROJECT_REBOOT_APP_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/reboot/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/reboot/*.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/reboot/*.cxx"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/reboot/*.s" CACHE INTERNAL "Project clear app sources")
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/reboot/*.s" CACHE INTERNAL "Project reboot app sources")
 
 set(HSE_VALUE 8000000)
 set(MCU_DEVICE STM32F10X_XL)
@@ -167,6 +173,7 @@ add_executable(${CMAKE_PROJECT_NAME}.elf
   ${PROJECT_CLEAR_APP_SOURCES}
   ${PROJECT_COWSAY_APP_SOURCES}
   ${PROJECT_BREWERY_APP_SOURCES}
+  ${PROJECT_BENDER_APP_SOURCES}
   ${PROJECT_DEBUG_APP_SOURCES}
   ${PROJECT_REBOOT_APP_SOURCES})
 
