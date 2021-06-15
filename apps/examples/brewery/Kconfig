@@ -1,0 +1,3 @@
+config EXAMPLES_BREWERY_APP
+	bool "Brewery"
+	default n
