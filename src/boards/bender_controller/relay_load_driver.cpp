@@ -20,7 +20,7 @@ extern bool debug_log_enabled;
 
 /* AC load locks */
 static xSemaphoreHandle relayload_locks[relayloads_num];
-static const uint8_t relayload_gpio_pins[relayloads_num]{6u, 7u};
+static const uint8_t relayload_gpio_pins[relayloads_num]{12u, 13u};
 enum relay_loads_e : uint32_t { RELAYLOAD0, RELAYLOAD1 };
 
 extern xQueueHandle events_worker_queue;
@@ -41,7 +41,7 @@ template <enum relay_loads_e relayload_no> static int32_t relayload_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(relayload_locks[relayload_no], portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(relayload_locks[relayload_no], portMAX_DELAY)) != pdPASS) {
     // errno = ???
     relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
@@ -97,7 +97,7 @@ void relay_load_drv_init(const struct drv_model_cmn_s *drv) {
     goto error;
   }
 
-  if ((gpio_fd = open(gpio_drv, "B", 3, 3u)) < 0) {
+  if ((gpio_fd = open(gpio_drv, "C", 3, 3u)) < 0) {
     relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
@@ -206,7 +206,7 @@ template <enum relay_loads_e relayload_no> static int32_t relay_load_drv_ioctl(u
       goto error;
     }
 
-    if ((gpio_fd = ::open(gpio, "B", 3, 3u)) < 0) {
+    if ((gpio_fd = ::open(gpio, "C", 3, 3u)) < 0) {
       relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }
@@ -231,7 +231,7 @@ template <enum relay_loads_e relayload_no> static int32_t relay_load_drv_ioctl(u
       goto error;
     }
 
-    if ((gpio_fd = ::open(gpio, "B", 3, 3u)) < 0) {
+    if ((gpio_fd = ::open(gpio, "C", 3, 3u)) < 0) {
       relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }
@@ -257,7 +257,7 @@ template <enum relay_loads_e relayload_no> static int32_t relay_load_drv_ioctl(u
       goto error;
     }
 
-    if ((gpio_fd = ::open(gpio, "B", 3, 3u)) < 0) {
+    if ((gpio_fd = ::open(gpio, "C", 3, 3u)) < 0) {
       relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }
@@ -373,7 +373,7 @@ static int32_t relay_load_printf(const char *fmt, ...) {
     }
   }
 
- exit:
+exit:
   free(temp);
   return strlen;
 error:

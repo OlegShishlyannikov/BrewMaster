@@ -540,7 +540,6 @@ static int32_t gpio_drv_GPIOA_ioctl(uint64_t req, const void *buf, size_t size) 
     GPIO_EXTI_irq_callbacks[gpio_irq_req->exti_line] = nullptr;
     NVIC_DisableIRQ(irqn);
   } break;
-
   default:
     break;
   }

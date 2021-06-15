@@ -264,8 +264,6 @@ void ads1118_drv_exit(const struct drv_model_cmn_s *drv) {
     goto error;
   }
 
-  return;
-
   ads1118_drv_fops.owner = nullptr;
 
   vSemaphoreDelete(ads1118_lock);

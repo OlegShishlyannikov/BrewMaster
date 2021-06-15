@@ -1,7 +1,7 @@
--I/home/user/Projects/bender/bender/cmsis/inc
--I/home/user/Projects/bender/bender/spl/inc
--I/home/user/Projects/bender/bender/rtos/inc
--I/home/user/Projects/bender/bender/inc
+-I/home/user/Projects/bender_controller/cmsis/inc
+-I/home/user/Projects/bender_controller/spl/inc
+-I/home/user/Projects/bender_controller/rtos/inc
+-I/home/user/Projects/bender_controller/inc
 -isystem /usr/arm-none-eabi/include/
 -isystem /usr/arm-none-eabi/include/c++/10.2.0/
 -DSTM32F10X_XL

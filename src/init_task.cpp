@@ -8,7 +8,7 @@
 #include "drivers/io/rcc_ioctl.hpp"
 #include "drivers/io/usart_ioctl.hpp"
 
-#include "apps/brewery/brewery.hpp"
+#include "apps/bender/bender.hpp"
 #include "apps/shell/shell.hpp"
 
 extern struct sys_impl_s &sys;
@@ -22,8 +22,8 @@ void init_task_code(void *args) {
   int32_t rc;
   struct app_s **apps;
   size_t app_num;
-  struct app_s *shell_app, *brewery_app;
-  xTaskHandle brewery_task_handle, shell_task_handle;
+  struct app_s *shell_app, *bender_app;
+  xTaskHandle bender_task_handle, shell_task_handle;
 
   if ((rc = init_clock()) < 0) {
     goto error_state;
@@ -41,13 +41,13 @@ void init_task_code(void *args) {
     goto error_state;
   }
 
-  brewery_app = sys.app("brewery");
-  if (!(brewery_app)) {
+  bender_app = sys.app("bender");
+  if (!(bender_app)) {
     goto error_state;
   }
 
   xTaskCreate(shell_app->entry, shell_app->name, configMINIMAL_STACK_SIZE * 6u, args, 5u, &shell_task_handle);
-  xTaskCreate(brewery_app->entry, brewery_app->name, configMINIMAL_STACK_SIZE * 24u, args, 8u, &brewery_task_handle);
+  xTaskCreate(bender_app->entry, bender_app->name, configMINIMAL_STACK_SIZE * 24u, args, 8u, &bender_task_handle);
 
   while (true) {
     vTaskDelay(100u);
@@ -61,7 +61,7 @@ static int32_t init_printfmt(const char *fmt, ...) {
   int32_t rc, usart_fd, strlen;
   static char *temp;
   const struct drv_model_cmn_s *usart;
-  
+
   std::va_list arg;
   va_start(arg, fmt);
   size_t bufsz = std::vsnprintf(nullptr, 0u, fmt, arg);
@@ -89,7 +89,7 @@ static int32_t init_printfmt(const char *fmt, ...) {
     goto error;
   }
 
- exit:
+exit:
   free(temp);
   return strlen;
 error:

@@ -19,8 +19,8 @@ static const struct drv_model_cmn_s *drv_ptr;
 extern bool debug_log_enabled;
 
 /* RX & TX pins */
-static constexpr uint8_t USART1_rx_pin_no = 10u, USART1_tx_pin_no = 9u;
-
+static constexpr uint8_t USART1_rx_pin_no = 7u, USART1_tx_pin_no = 6u;
+static constexpr const char *usart_gpio_port_letter = "B";
 /* Buffer sizes */
 static constexpr uint32_t USART1_drv_rxd_buffer_size = 32u;
 static constexpr uint32_t USART1_drv_txd_buffer_size = 32u;
@@ -145,7 +145,7 @@ void usart_drv_init(const struct drv_model_cmn_s *drv) {
   }
 
   /* Open GPIO device */
-  if ((gpio_fd = ::open(gpio, "A", 3, 2u)) < 0) {
+  if ((gpio_fd = ::open(gpio, usart_gpio_port_letter, 3, 2u)) < 0) {
     // errno = ???
     usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
@@ -243,7 +243,7 @@ void usart_drv_exit(const struct drv_model_cmn_s *drv) {
   }
 
   /* Open GPIO device */
-  if ((gpio_fd = ::open(gpio, "A", 3, 2u)) < 0) {
+  if ((gpio_fd = ::open(gpio, usart_gpio_port_letter, 3, 2u)) < 0) {
     // errno = ???
     usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
@@ -309,6 +309,8 @@ static int32_t usart_drv_USART1_ioctl(uint64_t req, const void *buf, size_t size
 
   case USART_INIT: {
     const struct usart_setup_req_s *usart_req = reinterpret_cast<const struct usart_setup_req_s *>(buf);
+    GPIO_PinRemapConfig(GPIO_Remap_USART1, ENABLE);
+
     USART_InitTypeDef usart;
     usart.USART_BaudRate = usart_req->baudrate;
     usart.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
@@ -335,6 +337,7 @@ static int32_t usart_drv_USART1_ioctl(uint64_t req, const void *buf, size_t size
   case USART_DEINIT: {
     const struct usart_setup_req_s *usart_req = reinterpret_cast<const struct usart_setup_req_s *>(buf);
     USART_InitTypeDef usart;
+	GPIO_PinRemapConfig(GPIO_Remap_USART1, DISABLE);
     USART_Cmd(USART1, DISABLE);
     USART_DeInit(USART1);
     USART_ITConfig(USART1, USART_IT_RXNE, DISABLE);

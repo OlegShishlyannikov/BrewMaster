@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.6)
 
-project(brewery_controller)
+project(bender_controller)
 
 enable_language(ASM)
 enable_language(C)

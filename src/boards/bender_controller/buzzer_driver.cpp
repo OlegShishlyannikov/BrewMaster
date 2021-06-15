@@ -18,7 +18,7 @@ static const struct drv_model_cmn_s *drv_ptr;
 /* Buzzer lock */
 static xSemaphoreHandle buzzer_lock;
 extern xQueueHandle events_worker_queue;
-static constexpr const uint32_t buzzer_pin_no = 3u;
+static constexpr const uint32_t buzzer_pin_no = 10u;
 extern bool debug_log_enabled;
 
 static int32_t buzzer_printf(const char *fmt, ...);
@@ -87,7 +87,7 @@ void buzzer_drv_init(const struct drv_model_cmn_s *drv) {
     goto error;
   }
 
-  if ((gpio_fd = open(gpio_drv, "A", 3, 3u)) < 0) {
+  if ((gpio_fd = open(gpio_drv, "C", 3, 3u)) < 0) {
     buzzer_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
@@ -181,7 +181,7 @@ static int32_t buzzer_drv_ioctl(uint64_t req, const void *buf, size_t size) {
   switch (req) {
   case BUZZER_BEEP: {
     const struct buzzer_beep_req_s *req = static_cast<const struct buzzer_beep_req_s *>(buf);
-    if ((gpio_fd = ::open(gpio, "A", 3, 3u)) < 0) {
+    if ((gpio_fd = ::open(gpio, "C", 3, 3u)) < 0) {
       buzzer_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }

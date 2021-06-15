@@ -58,7 +58,7 @@ static constexpr const uint8_t SPI1_miso_pin_no = 6u, SPI1_nss_pin_no = 4u;
 
 // SPI3 pins
 static constexpr const uint8_t SPI3_mosi_pin_no = 5u, SPI3_sck_pin_no = 3u;
-static constexpr const uint8_t SPI3_miso_pin_no = 4u, SPI3_nss_pin_no = 15u;
+static constexpr const uint8_t SPI3_miso_pin_no = 4u, SPI3_nss_pin_no = 2u;
 
 // SPI FIFO sizes
 static constexpr const uint32_t SPI1_drv_rxd_buffer_size = 32u;
@@ -257,22 +257,6 @@ void spi_drv_init(const struct drv_model_cmn_s *drv) {
     goto error;
   }
 
-  // Initialize SPI3 NSS pin
-  gpio_req = {.pin = SPI3_nss_pin_no};
-  if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_SP_PP, &gpio_req, sizeof(gpio_req))) < 0) {
-    // errno = ???
-    spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
-  }
-
-  // SPI3 NCS up
-  gpio_pin_write_req = {.pin = SPI3_nss_pin_no, .val = 1u};
-  if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_PIN_WRITE, &gpio_pin_write_req, sizeof(gpio_pin_write_req))) < 0) {
-    // errno = ???
-    spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
-  }
-
   // Initialize MISO pin
   gpio_req = {.pin = SPI1_miso_pin_no};
   if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_SP_IPH, &gpio_req, sizeof(gpio_req))) < 0) {
@@ -307,6 +291,22 @@ void spi_drv_init(const struct drv_model_cmn_s *drv) {
   // Initialize SPI3 MISO pin
   gpio_req = {.pin = SPI3_miso_pin_no};
   if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_SP_IPH, &gpio_req, sizeof(gpio_req))) < 0) {
+    // errno = ???
+    spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+  // Initialize SPI3 NSS pin
+  gpio_req = {.pin = SPI3_nss_pin_no};
+  if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_SP_PP, &gpio_req, sizeof(gpio_req))) < 0) {
+    // errno = ???
+    spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+  // SPI3 NCS up
+  gpio_pin_write_req = {.pin = SPI3_nss_pin_no, .val = 1u};
+  if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_PIN_WRITE, &gpio_pin_write_req, sizeof(gpio_pin_write_req))) < 0) {
     // errno = ???
     spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
@@ -420,14 +420,6 @@ void spi_drv_exit(const struct drv_model_cmn_s *drv) {
     goto error;
   }
 
-  // Restore default setting SPI3 NSS pin
-  gpio_req = {.pin = SPI3_nss_pin_no};
-  if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_SP_IFLOAT, &gpio_req, sizeof(gpio_req))) < 0) {
-    // errno = ???
-    spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
-  }
-
   // Restore default setting MISO pin
   gpio_req = {.pin = SPI1_miso_pin_no};
   if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_SP_IFLOAT, &gpio_req, sizeof(gpio_req))) < 0) {
@@ -461,6 +453,14 @@ void spi_drv_exit(const struct drv_model_cmn_s *drv) {
 
   // Restore default setting on SPI3 MISO pin
   gpio_req = {.pin = SPI3_miso_pin_no};
+  if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_SP_IFLOAT, &gpio_req, sizeof(gpio_req))) < 0) {
+    // errno = ???
+    spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+  // Restore default setting SPI3 NSS pin
+  gpio_req = {.pin = SPI3_nss_pin_no};
   if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_SP_IFLOAT, &gpio_req, sizeof(gpio_req))) < 0) {
     // errno = ???
     spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
@@ -777,20 +777,20 @@ static int32_t spi_drv_SPI3_ioctl(uint64_t req, const void *buf, size_t size) {
     spi.SPI_NSS = SPI_NSS_Soft;
     SPI_Init(spi_periph[2u], &spi);
 
-    g_pfnVectorsRam[SPI3_irq_vector_num] = SPI_irq_handler;
-    SPI_I2S_ITConfig(spi_periph[2u], SPI_I2S_IT_RXNE, ENABLE);
+    // g_pfnVectorsRam[SPI3_irq_vector_num] = SPI_irq_handler;
+    // SPI_I2S_ITConfig(spi_periph[2u], SPI_I2S_IT_RXNE, ENABLE);
     SPI_Cmd(spi_periph[2u], ENABLE);
 
-    NVIC_SetPriority(SPI3_irq_num, spi_req->irq_priority);
-    NVIC_EnableIRQ(SPI3_irq_num);
+    // NVIC_SetPriority(SPI3_irq_num, spi_req->irq_priority);
+    // NVIC_EnableIRQ(SPI3_irq_num);
   } break;
 
   case SPI_DEINIT: {
     SPI_Cmd(spi_periph[2u], DISABLE);
     SPI_I2S_DeInit(spi_periph[2u]);
     SPI_I2S_ITConfig(spi_periph[2u], SPI_I2S_IT_RXNE, DISABLE);
-    NVIC_DisableIRQ(SPI3_irq_num);
-    g_pfnVectorsRam[SPI3_irq_vector_num] = nullptr;
+    // NVIC_DisableIRQ(SPI3_irq_num);
+    // g_pfnVectorsRam[SPI3_irq_vector_num] = nullptr;
   } break;
 
   case SPI_ON_RECV: {
@@ -816,7 +816,7 @@ static int32_t spi_drv_SPI3_ioctl(uint64_t req, const void *buf, size_t size) {
     }
 
     /* Open GPIOA device file */
-    if ((gpio_fd = ::open(gpio, "A", 3, 2u)) < 0) {
+    if ((gpio_fd = ::open(gpio, "B", 3, 2u)) < 0) {
       // errno = ???
       spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
@@ -852,7 +852,7 @@ static int32_t spi_drv_SPI3_ioctl(uint64_t req, const void *buf, size_t size) {
     }
 
     /* Open GPIOA device file */
-    if ((gpio_fd = ::open(gpio, "A", 3, 2u)) < 0) {
+    if ((gpio_fd = ::open(gpio, "B", 3, 2u)) < 0) {
       // errno = ???
       spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
@@ -890,31 +890,44 @@ error:
 
 static int32_t spi_drv_SPI3_read(void *const buf, size_t size) {
   BaseType_t rc;
-
+  struct spi_send_seq_req_s spi_seq_req {
+    .seq = 0xffff
+  };
+  uint16_t recvd;
+  
   /* Check if device driver inited successfully */
   if (!drv_ptr) {
     spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
 
-  if (size % sizeof(uint16_t)) {
-    uint16_t from_queue[size / sizeof(uint16_t) + 1u];
-    for (size_t n = 0u; n < sizeof(from_queue) / sizeof(uint16_t); n++) {
-      if ((rc = xQueueReceive(SPI_fifos[2u], &from_queue[n], portIO_MAX_DELAY)) != pdPASS) {
-        spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-        goto error;
-      }
+  while (SPI_I2S_GetFlagStatus(spi_periph[2u], SPI_I2S_FLAG_BSY))
+    ;
+  SPI_I2S_SendData(spi_periph[2u], spi_seq_req.seq);
+  while(!SPI_I2S_GetFlagStatus(spi_periph[2u], SPI_I2S_FLAG_RXNE))
+    ;
+  
+  recvd = SPI_I2S_ReceiveData(SPI3);  
+  *reinterpret_cast<uint16_t *>(buf)  = recvd;
+  
+  // if (size % sizeof(uint16_t)) {
+  //   uint16_t from_queue[size / sizeof(uint16_t) + 1u];
+  //   for (size_t n = 0u; n < sizeof(from_queue) / sizeof(uint16_t); n++) {
+  //     if ((rc = xQueueReceive(SPI_fifos[2u], &from_queue[n], portIO_MAX_DELAY)) != pdPASS) {
+  //       spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+  //       goto error;
+  //     }
 
-      *reinterpret_cast<uint8_t *>(buf) = from_queue[n];
-    }
-  } else {
-    for (size_t n = 0u; n < size / sizeof(uint16_t); n++) {
-      if ((rc = xQueueReceive(SPI_fifos[2u], reinterpret_cast<uint16_t *const>(buf) + n, portIO_MAX_DELAY)) != pdPASS) {
-        spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-        goto error;
-      }
-    }
-  }
+  //     *reinterpret_cast<uint8_t *>(buf) = from_queue[n];
+  //   }
+  // } else {
+  //   for (size_t n = 0u; n < size / sizeof(uint16_t); n++) {
+  //     if ((rc = xQueueReceive(SPI_fifos[2u], reinterpret_cast<uint16_t *const>(buf) + n, portIO_MAX_DELAY)) != pdPASS) {
+  //       spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+  //       goto error;
+  //     }
+  //   }
+  // }
 
   return 0;
 error:
@@ -932,6 +945,7 @@ static int32_t spi_drv_SPI3_write(const void *buf, size_t size) {
     while (SPI_I2S_GetFlagStatus(spi_periph[2u], SPI_I2S_FLAG_BSY))
       ;
     SPI_I2S_SendData(spi_periph[2u], reinterpret_cast<const uint16_t *>(buf)[i]);
+	
   }
 
   return 0;
@@ -1071,7 +1085,7 @@ static int32_t spi_drv_printf(const char *fmt, ...) {
     }
   }
 
- exit:
+exit:
   free(temp);
   return strlen;
 error:

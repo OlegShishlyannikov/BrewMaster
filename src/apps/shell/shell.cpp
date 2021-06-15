@@ -215,7 +215,7 @@ int32_t shell_app_s::shell_printfmt(const char *fmt, ...) {
   temp = static_cast<char *>(calloc(bufsz, sizeof(char)));
   strlen = std::vsprintf(temp, fmt, arg);
   va_end(arg);
-  
+
   if (!(usart = sys.drv("usart"))) {
     goto error;
   }
@@ -238,7 +238,7 @@ int32_t shell_app_s::shell_printfmt(const char *fmt, ...) {
     }
   }
 
- exit:
+exit:
   free(temp);
   return strlen;
 error:

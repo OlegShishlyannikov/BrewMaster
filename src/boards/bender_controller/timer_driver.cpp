@@ -22,6 +22,7 @@ extern xQueueHandle events_worker_queue;
 static xSemaphoreHandle TIM1_lock;
 
 static constexpr const uint16_t timer_cnt_modes[] = {TIM_CounterMode_Up, TIM_CounterMode_Down, TIM_CounterMode_CenterAligned1, TIM_CounterMode_CenterAligned2, TIM_CounterMode_CenterAligned3};
+static constexpr const uint16_t timer_clk_divs[] = {TIM_CKD_DIV1, TIM_CKD_DIV2, TIM_CKD_DIV4};
 
 static int32_t timer_printf(const char *fmt, ...);
 static int32_t timer_drv_TIM1_open(int32_t, mode_t);
@@ -207,7 +208,7 @@ static int32_t timer_drv_TIM1_ioctl(uint64_t req, const void *buf, size_t size) 
     timer.TIM_CounterMode = timer_cnt_modes[req->cnt_mode];
     timer.TIM_Prescaler = req->psc;
     timer.TIM_Period = req->period;
-    timer.TIM_ClockDivision = req->clk_div;
+    timer.TIM_ClockDivision = timer_clk_divs[req->clk_div];
     timer.TIM_RepetitionCounter = req->rep_cnt;
     TIM_TimeBaseInit(TIM1, &timer);
     TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
