@@ -406,6 +406,14 @@ int stm32_bringup(void)
     }
 #endif
 
+#ifdef CONFIG_ARCH_CUSTOM_LEDS
+  ret = up_leds();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: up_leds() failed: %d\n", ret);
+    }
+#endif
+
 #ifdef CONFIG_CAN_MCP2515
   /* Configure and initialize the MCP2515 CAN device */
 
@@ -525,3 +533,4 @@ int stm32_bringup(void)
 
   return ret;
 }
+

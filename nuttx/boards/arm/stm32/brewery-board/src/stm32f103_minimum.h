@@ -238,6 +238,18 @@ int stm32_gpio_initialize(void);
 #endif
 
 /****************************************************************************
+ * Name: up_leds
+ *
+ * Description:
+ *   Initialize LEDs driver on brewery board.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_CUSTOM_LEDS
+int up_leds(void);
+#endif
+
+/****************************************************************************
  * Name: stm32_adc_setup
  *
  * Description:

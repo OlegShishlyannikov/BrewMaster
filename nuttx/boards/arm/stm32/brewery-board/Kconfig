@@ -3,6 +3,10 @@
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
 
+config ARCH_CUSTOM_LEDS
+	bool "Brewery board leds support"
+	default y
+
 if ARCH_BOARD_STM32F103_MINIMUM
 
 choice
