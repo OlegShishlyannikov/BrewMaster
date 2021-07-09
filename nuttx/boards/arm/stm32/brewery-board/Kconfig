@@ -7,6 +7,10 @@ config ARCH_CUSTOM_LEDS
 	bool "Brewery board leds support"
 	default y
 
+config ARCH_CUSTOM_BUTTONS
+	bool "Brewery board buttons support"
+	default y
+
 if ARCH_BOARD_STM32F103_MINIMUM
 
 choice

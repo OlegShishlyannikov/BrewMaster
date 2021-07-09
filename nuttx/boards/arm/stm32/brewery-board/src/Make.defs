@@ -43,6 +43,10 @@ ifeq ($(CONFIG_ARCH_CUSTOM_LEDS),y)
   CSRCS += custom_leds_driver.c
 endif
 
+ifeq ($(CONFIG_ARCH_CUSTOM_BUTTONS),y)
+  CSRCS += custom_buttons_driver.c
+endif
+
 ifeq ($(CONFIG_ADC),y)
 CSRCS +=  stm32_adc.c
 endif

@@ -414,6 +414,14 @@ int stm32_bringup(void)
     }
 #endif
 
+#ifdef CONFIG_ARCH_CUSTOM_BUTTONS
+  ret = up_buttons();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: up_buttons() failed: %d\n", ret);
+    }
+#endif
+
 #ifdef CONFIG_CAN_MCP2515
   /* Configure and initialize the MCP2515 CAN device */
 

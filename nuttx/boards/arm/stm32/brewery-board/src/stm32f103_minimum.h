@@ -250,6 +250,18 @@ int up_leds(void);
 #endif
 
 /****************************************************************************
+ * Name: up_buttons
+ *
+ * Description:
+ *   Initialize buttons driver on brewery board.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_CUSTOM_BUTTONS
+int up_buttons(void);
+#endif
+
+/****************************************************************************
  * Name: stm32_adc_setup
  *
  * Description:
