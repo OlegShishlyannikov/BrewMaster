@@ -14,9 +14,9 @@ static ssize_t buttons_write(file_t *filep, const char *buf, size_t buflen);
 static int buttons_ioctl(file_t *filep, int cmd, unsigned long arg);
 
 static const int GPIO_BUTTON[BUTTONS_NUM] = {
-	(GPIO_INPUT | GPIO_CNF_INFLOAT | GPIO_EXTI | GPIO_PORTB | GPIO_PIN14),
-	(GPIO_INPUT | GPIO_CNF_INFLOAT | GPIO_EXTI | GPIO_PORTB | GPIO_PIN13),
-	(GPIO_INPUT | GPIO_CNF_INFLOAT | GPIO_EXTI | GPIO_PORTB | GPIO_PIN12),
+	(GPIO_INPUT | GPIO_CNF_INPULLUP | GPIO_EXTI | GPIO_PORTA | GPIO_PIN0),
+	(GPIO_INPUT | GPIO_CNF_INPULLUP | GPIO_EXTI | GPIO_PORTA | GPIO_PIN1),
+	(GPIO_INPUT | GPIO_CNF_INPULLUP | GPIO_EXTI | GPIO_PORTA | GPIO_PIN2),
 };
 
 static const struct file_operations buttons_ops = {
