@@ -1,5 +1,6 @@
 #include "stm32_gpio.h"
 
+#include <arch/board/buttons_ioctl.h>
 #include <nuttx/fs/fs.h>
 #include <stdio.h>
 
@@ -55,8 +56,32 @@ static ssize_t buttons_write(file_t *filep, const char *buf, size_t buflen)
 
 static int buttons_ioctl(file_t *filep, int cmd, unsigned long arg)
 {
-	// TODO
-	return OK;
+	int ret = OK;
+	buttons_irq_req *request = (buttons_irq_req *)arg;
+	switch (cmd) {
+		case BUTTON_IRQ_ENABLE:
+			ret = stm32_gpiosetevent(GPIO_BUTTON[request->num],
+					request->trigger & BUTTON_TRIGGER_RISING,
+					request->trigger & BUTTON_TRIGGER_FALLING,
+					true,
+					request->callback,
+					request->cbargs);
+			break;
+		case BUTTON_IRQ_DISABLE:
+			ret = stm32_gpiosetevent(GPIO_BUTTON[request->num],
+					false,
+					false,
+					false,
+					NULL,
+					NULL);	
+			break;
+		case BUTTON_GET_STATE:
+			ret = stm32_gpioread(GPIO_BUTTON[request->num]);
+			break;
+		default:
+			return -1;
+	};
+	return ret;
 }
 
 int up_buttons(void)
