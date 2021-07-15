@@ -1,0 +1,3 @@
+config EXAMPLES_BUTTONS_TEST_APP
+	bool "Buttons test"
+	default n
