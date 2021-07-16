@@ -262,6 +262,18 @@ int up_buttons(void);
 #endif
 
 /****************************************************************************
+ * Name: up_buzzer
+ *
+ * Description:
+ *   Initialize buzzer driver on brewery board.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_CUSTOM_BUZZER
+int up_buzzer(void);
+#endif
+
+/****************************************************************************
  * Name: stm32_adc_setup
  *
  * Description:

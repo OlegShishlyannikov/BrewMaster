@@ -11,6 +11,10 @@ config ARCH_CUSTOM_BUTTONS
 	bool "Brewery board buttons support"
 	default y
 
+config ARCH_CUSTOM_BUZZER
+	bool "Brewery board buzzer support"
+	default y
+
 if ARCH_BOARD_STM32F103_MINIMUM
 
 choice

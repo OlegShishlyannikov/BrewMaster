@@ -29,6 +29,10 @@ ifeq ($(CONFIG_BOARDCTL_RESET),y)
 endif
 endif
 
+ifeq ($(CONFIG_ARCH_CUSTOM_BUZZER),y)
+  CSRCS += custom_buzzer_driver.c
+endif
+
 ifeq ($(CONFIG_ARCH_BUTTONS),y)
   CSRCS += stm32_buttons.c
 endif
