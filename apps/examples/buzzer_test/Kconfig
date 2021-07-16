@@ -1,0 +1,3 @@
+config EXAMPLES_BUZZER_TEST_APP
+	bool "Buzzer test"
+	default n
