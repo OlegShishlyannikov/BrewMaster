@@ -22,6 +22,8 @@ extern bool debug_log_enabled;
 
 /* Latch, clock and data pins used */
 static constexpr uint8_t ic74hc595_sh_cp_no = 5u, ic74hc595_st_cp_no = 6u, ic74hc595_ds_no = 7u;
+static constexpr const char *ic74hc595_drv_spi_devstr = "spi1";
+static constexpr const char *ic74hc595_drv_console_devstr = "usart1";
 
 /* 74HC595 lock & fifos */
 static xSemaphoreHandle ic74hc595_lock;
@@ -95,13 +97,13 @@ void ic74hc595_drv_init(const struct drv_model_cmn_s *drv) {
   };
 
   struct spi_send_seq_req_s spi_seq_req;
-  
+
   if (!(spi = drv->dep("spi"))) {
     ic74hc595_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
 
-  if ((spi_fd = ::open(spi, "spi1", 3, 3u)) < 0) {
+  if ((spi_fd = ::open(spi, ic74hc595_drv_spi_devstr, 3, 3u)) < 0) {
     ic74hc595_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
@@ -149,7 +151,7 @@ void ic74hc595_drv_exit(const struct drv_model_cmn_s *drv) {
     goto error;
   }
 
-  if ((spi_fd = ::open(spi, "spi1", 3, 3u)) < 0) {
+  if ((spi_fd = ::open(spi, ic74hc595_drv_spi_devstr, 3, 3u)) < 0) {
     ic74hc595_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
@@ -243,7 +245,7 @@ static int32_t ic74hc595_drv_write(const void *buf, size_t size) {
     goto error;
   }
 
-  if ((spi_fd = ::open(spi, "spi1", 2, 3u)) < 0) {
+  if ((spi_fd = ::open(spi, ic74hc595_drv_spi_devstr, 2, 3u)) < 0) {
     ic74hc595_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
@@ -311,7 +313,7 @@ static int32_t ic74hc595_printf(const char *fmt, ...) {
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, ic74hc595_drv_console_devstr, 3, 3u)) < 0) {
       goto error;
     }
 

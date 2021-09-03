@@ -14,6 +14,10 @@
 extern struct sys_impl_s &sys;
 extern bool debug_log_enabled;
 
+static constexpr const char *console_driver_name = "usart";
+static constexpr const char *console_device_name = "usart1";
+static constexpr const char *console_device_path = "usart/usart1";
+
 static int32_t init_clock();
 static int32_t init_console();
 static int32_t init_printfmt(const char *fmt, ...);
@@ -22,33 +26,41 @@ void init_task_code(void *args) {
   int32_t rc;
   struct app_s **apps;
   size_t app_num;
-  struct app_s *shell_app, *bender_app;
-  xTaskHandle bender_task_handle, shell_task_handle;
+  struct app_s *shell_app, *bender_app, *modbus_app;
+  xTaskHandle bender_task_handle, shell_task_handle, modbus_task_handle;
 
   if ((rc = init_clock()) < 0) {
+	init_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error_state;
   }
 
-  if ((rc = init_console()) < 0) {
-    goto error_state;
-  }
+  // if ((rc = init_console()) < 0) {
+  //   goto error_state;
+  // }
 
   apps = sys.apps();
   app_num = sys.apps_num();
 
-  shell_app = sys.app("shell");
-  if (!(shell_app)) {
-    goto error_state;
-  }
+  // shell_app = sys.app("shell");
+  // if (!(shell_app)) {
+  //   goto error_state;
+  // }
 
   bender_app = sys.app("bender");
   if (!(bender_app)) {
     goto error_state;
   }
 
-  xTaskCreate(shell_app->entry, shell_app->name, configMINIMAL_STACK_SIZE * 6u, args, 5u, &shell_task_handle);
-  xTaskCreate(bender_app->entry, bender_app->name, configMINIMAL_STACK_SIZE * 24u, args, 8u, &bender_task_handle);
+  // modbus_app = sys.app("modbus");
+  // if (!(modbus_app)) {
+  // 	init_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+  //   goto error_state;
+  // }
 
+  // xTaskCreate(shell_app->entry, shell_app->name, configMINIMAL_STACK_SIZE * 6u, args, 5u, &shell_task_handle);
+  xTaskCreate(bender_app->entry, bender_app->name, configMINIMAL_STACK_SIZE * 24u, args, 8u, &bender_task_handle);
+  // xTaskCreate(modbus_app->entry, modbus_app->name, configMINIMAL_STACK_SIZE * 6u, args, 5u, &modbus_task_handle);
+  
   while (true) {
     vTaskDelay(100u);
   }
@@ -73,11 +85,11 @@ static int32_t init_printfmt(const char *fmt, ...) {
     goto exit;
   }
 
-  if (!(usart = sys.drv("usart"))) {
+  if (!(usart = sys.drv(console_driver_name))) {
     goto error;
   }
 
-  if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+  if ((usart_fd = ::open(usart, console_device_name, 3, 3u)) < 0) {
     goto error;
   }
 
@@ -102,14 +114,17 @@ static int32_t init_clock() {
   int32_t rc, rcc_fd;
   /* Set SYSCLK frequency */
   if ((rcc_fd = ::open(&sys, "rcc/rcc0", 3, 3u)) < 0) {
+	init_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
 
   if ((rc = ::ioctl(&sys, "rcc/rcc0", rcc_drv_ioctl_cmd_e::RCC_SET_SYSCLK_72MHZ, nullptr, 0u)) < 0) {
+	init_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
 
   if ((rc = ::close(&sys, "rcc/rcc0")) < 0) {
+	init_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
 
@@ -122,19 +137,23 @@ static int32_t init_console() {
   int32_t rc, usart_fd;
 
   struct usart_setup_req_s usart_req {
-    .baudrate = 115200u, .irq_priority = 5u
+    .baudrate = 115200u, .irq_priority = 5u, .hw_flow_ctrl = usart_hw_flow_ctrl_e::NONE, .mode = usart_mode_e::RXTX, .parity = usart_parity_e::NO, .sb = usart_stop_bits_e::SB_1,
+    .wl = usart_word_len_e::WL_8B
   };
 
   /* Init USART driver */
-  if ((usart_fd = ::open(&sys, "usart/usart1", 3, 3u)) < 0) {
+  if ((usart_fd = ::open(&sys, console_device_path, 3, 3u)) < 0) {
+	init_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
 
-  if ((rc = ::ioctl(&sys, "usart/usart1", usart_ioctl_cmd_e::USART_INIT, &usart_req, sizeof(usart_req))) < 0) {
+  if ((rc = ::ioctl(&sys, console_device_path, usart_ioctl_cmd_e::USART_INIT, &usart_req, sizeof(usart_req))) < 0) {
+	init_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
 
-  if ((rc = ::close(&sys, "usart/usart1")) < 0) {
+  if ((rc = ::close(&sys, console_device_path)) < 0) {
+	init_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
 

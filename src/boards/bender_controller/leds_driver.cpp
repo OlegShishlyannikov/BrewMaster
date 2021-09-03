@@ -18,6 +18,8 @@ static xSemaphoreHandle LED1_lock;
 static xSemaphoreHandle LED2_lock;
 extern xQueueHandle events_worker_queue;
 
+static constexpr const char *console_devstr = "usart1";
+
 static const struct drv_model_cmn_s *drv_ptr;
 static const uint16_t led0_gpio_pin_no = 12u;
 static const uint16_t led1_gpio_pin_no = 13u;
@@ -782,7 +784,7 @@ static int32_t leds_printf(const char *fmt, ...) {
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, console_devstr, 3, 3u)) < 0) {
       leds_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }

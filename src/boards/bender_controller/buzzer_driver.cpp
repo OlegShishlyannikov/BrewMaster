@@ -15,6 +15,8 @@
 
 static const struct drv_model_cmn_s *drv_ptr;
 
+static constexpr const char *console_devstr = "usart1";
+
 /* Buzzer lock */
 static xSemaphoreHandle buzzer_lock;
 extern xQueueHandle events_worker_queue;
@@ -279,7 +281,7 @@ static int32_t buzzer_printf(const char *fmt, ...) {
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, console_devstr, 3, 3u)) < 0) {
       buzzer_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }

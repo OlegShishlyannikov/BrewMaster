@@ -18,6 +18,8 @@ extern xQueueHandle events_worker_queue;
 static constexpr const uint32_t relayloads_num = 2u;
 extern bool debug_log_enabled;
 
+static constexpr const char *console_devstr = "usart1";
+
 /* AC load locks */
 static xSemaphoreHandle relayload_locks[relayloads_num];
 static const uint8_t relayload_gpio_pins[relayloads_num]{12u, 13u};
@@ -343,7 +345,7 @@ static int32_t relay_load_printf(const char *fmt, ...) {
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, console_devstr, 3, 3u)) < 0) {
       relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }

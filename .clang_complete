@@ -5,5 +5,6 @@
 -isystem /usr/arm-none-eabi/include/
 -isystem /usr/arm-none-eabi/include/c++/10.2.0/
 -DSTM32F10X_XL
--DHSE_VALUE=8000000
+-DHSE_VALUE=12000000
+-DBENDER_CONTROLLER_APP
 -std=gnu++20

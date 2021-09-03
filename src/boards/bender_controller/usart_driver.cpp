@@ -1,4 +1,5 @@
 #include <cstdarg>
+#include <vector>
 
 #include "FreeRTOS.h"
 #include "queue.h"
@@ -17,37 +18,56 @@
 /* This pointer will be used in interrupt handlers and will be initialized in driver init function */
 static const struct drv_model_cmn_s *drv_ptr;
 extern bool debug_log_enabled;
+extern xQueueHandle events_worker_queue;
 
 /* RX & TX pins */
-static constexpr uint8_t USART1_rx_pin_no = 7u, USART1_tx_pin_no = 6u;
-static constexpr const char *usart_gpio_port_letter = "B";
-/* Buffer sizes */
-static constexpr uint32_t USART1_drv_rxd_buffer_size = 32u;
-static constexpr uint32_t USART1_drv_txd_buffer_size = 32u;
+enum usart_device_e : uint32_t { USARTDEV1 = 0u, USARTDEV2, USARTDEV3, USARTDEV_MAX };
+static constexpr const char *usart_gpio_port_letters[] = {"A", "A", "B"};
+static constexpr const uint8_t usart_tx_pins[USARTDEV_MAX] = {9u, 2u, 10u};
+static constexpr const uint8_t usart_rx_pins[USARTDEV_MAX] = {10u, 3u, 11u};
+static constexpr enum isr_vectors_e usart_vectors[USARTDEV_MAX] = {USART1_IRQHandler_Vector, USART2_IRQHandler_Vector, USART3_IRQHandler_Vector};
+static constexpr enum IRQn usart_irqs[USARTDEV_MAX] = {USART1_IRQn, USART2_IRQn, USART3_IRQn};
 
-/* USART1 lock */
-static xSemaphoreHandle USART1_lock, USART1_dma_lock;
-extern xQueueHandle events_worker_queue;
-static xQueueHandle USART1_fifo;
+static constexpr const uint16_t usart_hw_low_ctrl[] = {USART_HardwareFlowControl_None, USART_HardwareFlowControl_RTS, USART_HardwareFlowControl_CTS, USART_HardwareFlowControl_RTS_CTS};
+static constexpr const uint16_t usart_mode[] = {USART_Mode_Rx, USART_Mode_Tx, USART_Mode_Rx | USART_Mode_Tx};
+static constexpr const uint16_t usart_parity[] = {USART_Parity_No, USART_Parity_Even, USART_Parity_Odd};
+static constexpr const uint16_t usart_stop_bits[] = {USART_StopBits_0_5, USART_StopBits_1, USART_StopBits_1_5, USART_StopBits_2};
+static constexpr const uint16_t usart_word_len[] = {USART_WordLength_8b, USART_WordLength_9b};
+
+static USART_TypeDef *usart_devices[] = {USART1, USART2, USART3};
+static constexpr const char *console_devstr = "usart1";
+static constexpr const char *usart_dev_names[] = {"usart1", "usart2", "usart3"};
+
+/* Buffer sizes */
+static constexpr uint32_t usart_drv_rxd_buffer_size = 32u;
+static constexpr uint32_t usart_drv_txd_buffer_size = 32u;
+
+/* USART locks */
+// static xSemaphoreHandle USART1_lock, USART1_dma_lock;
+static xSemaphoreHandle usart_locks[USARTDEV_MAX], usart_dma_locks[USARTDEV_MAX];
+
+/* USART fifos */
+// static xQueueHandle USART1_fifo;
+static xQueueHandle usart_fifos[USARTDEV_MAX];
 
 // Printf to console
 static int32_t usart_printf(const char *fmt, ...);
 
-/* USART1 file IO functions forward reference */
-static int32_t usart_drv_USART1_open(int32_t, mode_t);
-static int32_t usart_drv_USART1_ioctl(uint64_t, const void *, size_t);
-static int32_t usart_drv_USART1_read(void *const, size_t);
-static int32_t usart_drv_USART1_write(const void *, size_t);
-static int32_t usart_drv_USART1_close();
+/* USART file IO functions forward reference */
+template <enum usart_device_e device> static int32_t usart_drv_open(int32_t, mode_t);
+template <enum usart_device_e device> static int32_t usart_drv_ioctl(uint64_t, const void *, size_t);
+template <enum usart_device_e device> static int32_t usart_drv_read(void *const, size_t);
+template <enum usart_device_e device> static int32_t usart_drv_write(const void *, size_t);
+template <enum usart_device_e device> static int32_t usart_drv_close();
 
-static void USART1_irq_handler();
-static void USART1_dma_irq_handler();
+template <enum usart_device_e device> static void usart_irq_handler();
+template <enum usart_device_e device> static void usart_dma_irq_handler();
 
-static void (*USART1_on_send_callback)(const void *, size_t);
-static void (*USART1_on_recv_callback)(const void *, size_t);
+static void (*usart_on_send_callbacks[USARTDEV_MAX])(const void *, size_t);
+static void (*usart_on_recv_callbacks[USARTDEV_MAX])(const void *, size_t);
 
-/* USART1 helper functions */
-static int32_t USART1_flock() {
+/* USART helper functions */
+template <enum usart_device_e device> static int32_t usart_flock() {
   /* Check if device driver inited successfully */
   if (!drv_ptr) {
     usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
@@ -55,7 +75,7 @@ static int32_t USART1_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(USART1_lock, portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(usart_locks[device], portIO_MAX_DELAY)) != pdPASS) {
     // errno = ???
     usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
@@ -66,7 +86,7 @@ error:
   return -1;
 }
 
-static int32_t USART1_funlock() {
+template <enum usart_device_e device> static int32_t usart_funlock() {
   /* Check if device driver inited successfully */
   if (!drv_ptr) {
     usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
@@ -74,7 +94,7 @@ static int32_t USART1_funlock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreGiveRecursive(USART1_lock)) != pdPASS) {
+  if ((rc = xSemaphoreGiveRecursive(usart_locks[device])) != pdPASS) {
     // errno = ???
     usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
@@ -91,8 +111,18 @@ struct drv_ops_s usart_drv_ops {
 
 /* USART driver file operations secification */
 struct file_ops_s usart_drv_USART1_fops {
-  .flock = USART1_flock, .funlock = USART1_funlock, .open = usart_drv_USART1_open, .ioctl = usart_drv_USART1_ioctl, .read = usart_drv_USART1_read, .write = usart_drv_USART1_write,
-  .close = usart_drv_USART1_close
+  .flock = usart_flock<USARTDEV1>, .funlock = usart_funlock<USARTDEV1>, .open = usart_drv_open<USARTDEV1>, .ioctl = usart_drv_ioctl<USARTDEV1>, .read = usart_drv_read<USARTDEV1>,
+  .write = usart_drv_write<USARTDEV1>, .close = usart_drv_close<USARTDEV1>
+};
+
+struct file_ops_s usart_drv_USART2_fops {
+  .flock = usart_flock<USARTDEV2>, .funlock = usart_funlock<USARTDEV2>, .open = usart_drv_open<USARTDEV2>, .ioctl = usart_drv_ioctl<USARTDEV2>, .read = usart_drv_read<USARTDEV2>,
+  .write = usart_drv_write<USARTDEV2>, .close = usart_drv_close<USARTDEV2>
+};
+
+struct file_ops_s usart_drv_USART3_fops {
+  .flock = usart_flock<USARTDEV3>, .funlock = usart_funlock<USARTDEV3>, .open = usart_drv_open<USARTDEV3>, .ioctl = usart_drv_ioctl<USARTDEV3>, .read = usart_drv_read<USARTDEV3>,
+  .write = usart_drv_write<USARTDEV3>, .close = usart_drv_close<USARTDEV3>
 };
 
 void usart_drv_init(const struct drv_model_cmn_s *drv) {
@@ -115,20 +145,17 @@ void usart_drv_init(const struct drv_model_cmn_s *drv) {
     goto error;
   }
 
-  /* Enable GPIOC clocking */
-  rcc_req = {rcc_bus_e::APB2, rcc_apb2_periph_e::RCC_USART1};
-  if ((rc = ::ioctl(rcc, rcc_fd, rcc_drv_ioctl_cmd_e::RCC_ENABLE_CLOCK, &rcc_req, sizeof(rcc_req))) < 0) {
-    // errno = ???
-    usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
-  }
+  /* Enable USART1 clocking */
+  for (const struct rcc_drv_req_s &req :
+       {rcc_drv_req_s{rcc_bus_e::APB2, static_cast<uint32_t>(rcc_apb2_periph_e::RCC_USART1)}, rcc_drv_req_s{rcc_bus_e::APB1, static_cast<uint32_t>(rcc_apb1_periph_e::RCC_USART2)},
+        rcc_drv_req_s{rcc_bus_e::APB1, static_cast<uint32_t>(rcc_apb1_periph_e::RCC_USART3)}}) {
 
-  /* Enable DMA1 clocking */
-  rcc_req = {rcc_bus_e::AHB, rcc_ahb_periph_e::RCC_DMA1};
-  if ((rc = ::ioctl(rcc, rcc_fd, rcc_drv_ioctl_cmd_e::RCC_ENABLE_CLOCK, &rcc_req, sizeof(rcc_req))) < 0) {
-    // errno = ???
-    usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
+    rcc_req = {.bus = req.bus, .periph = req.periph};
+    if ((rc = ::ioctl(rcc, rcc_fd, rcc_drv_ioctl_cmd_e::RCC_ENABLE_CLOCK, &rcc_req, sizeof(rcc_req))) < 0) {
+      // errno = ???
+      usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
   }
 
   /* Close rcc file */
@@ -144,50 +171,63 @@ void usart_drv_init(const struct drv_model_cmn_s *drv) {
     goto error;
   }
 
-  /* Open GPIO device */
-  if ((gpio_fd = ::open(gpio, usart_gpio_port_letter, 3, 2u)) < 0) {
-    // errno = ???
-    usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
-  }
+  for (const usart_device_e &usartdev : {USARTDEV1, USARTDEV2, USARTDEV3}) {
+    /* Open GPIO device */
+    if ((gpio_fd = ::open(gpio, usart_gpio_port_letters[usartdev], 3, 2u)) < 0) {
+      // errno = ???
+      usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
 
-  gpio_req = {.pin = USART1_tx_pin_no};
-  if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_SP_ALT_PP, &gpio_req, sizeof(rcc_req))) < 0) {
-    // errno = ???
-    usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
-  }
+    gpio_req = {.pin = usart_tx_pins[usartdev]};
+    if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_SP_ALT_PP, &gpio_req, sizeof(rcc_req))) < 0) {
+      // errno = ???
+      usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
 
-  gpio_req = {.pin = USART1_rx_pin_no};
-  if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_SP_IPH, &gpio_req, sizeof(rcc_req))) < 0) {
-    // errno = ???
-    usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
-  }
+    gpio_req = {.pin = usart_rx_pins[usartdev]};
+    if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_SP_IPH, &gpio_req, sizeof(rcc_req))) < 0) {
+      // errno = ???
+      usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
 
-  /* Close rcc file */
-  if ((rc = ::close(gpio, gpio_fd)) < 0) {
-    usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
+    /* Close gpio file */
+    if ((rc = ::close(gpio, gpio_fd)) < 0) {
+      usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
   }
 
   usart_drv_USART1_fops.owner = drv;
+  usart_drv_USART2_fops.owner = drv;
+  usart_drv_USART3_fops.owner = drv;
 
   /* Init locks */
-  USART1_lock = xSemaphoreCreateRecursiveMutex();
-  USART1_dma_lock = xSemaphoreCreateBinary();
-  USART1_fifo = xQueueCreate(USART1_drv_rxd_buffer_size, sizeof(char));
+  for (xSemaphoreHandle &lock : usart_locks) {
+    lock = xSemaphoreCreateRecursiveMutex();
+  }
 
-  xSemaphoreGive(USART1_dma_lock);
+  for (xSemaphoreHandle &dma_lock : usart_dma_locks) {
+    dma_lock = xSemaphoreCreateBinary();
+    xSemaphoreGive(dma_lock);
+  }
+
+  for (xQueueHandle &fifo : usart_fifos) {
+    fifo = xQueueCreate(usart_drv_rxd_buffer_size, sizeof(char));
+  }
 
   /* Register char device for each GPIO port */
   drv->register_chardev("usart1", &usart_drv_USART1_fops);
+  drv->register_chardev("usart2", &usart_drv_USART2_fops);
+  drv->register_chardev("usart3", &usart_drv_USART3_fops);
 
   /* Initialize GPIO driver pointer */
   drv_ptr = drv;
   return;
 
-  /* Something went wrong -- reset drv_ptr and exit */
+/* Something went wrong -- reset drv_ptr and exit */
 error:
   usart_drv_exit(drv);
   return;
@@ -214,19 +254,16 @@ void usart_drv_exit(const struct drv_model_cmn_s *drv) {
   }
 
   /* Disable USART clocking */
-  rcc_req = {rcc_bus_e::APB2, rcc_apb2_periph_e::RCC_USART1};
-  if ((rc = ::ioctl(rcc, rcc_fd, rcc_drv_ioctl_cmd_e::RCC_DISABLE_CLOCK, &rcc_req, sizeof(rcc_req))) < 0) {
-    // errno = ???
-    usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
-  }
+  for (const struct rcc_drv_req_s &req :
+       {rcc_drv_req_s{rcc_bus_e::APB2, static_cast<uint32_t>(rcc_apb2_periph_e::RCC_USART1)}, rcc_drv_req_s{rcc_bus_e::APB1, static_cast<uint32_t>(rcc_apb1_periph_e::RCC_USART2)},
+        rcc_drv_req_s{rcc_bus_e::APB1, static_cast<uint32_t>(rcc_apb1_periph_e::RCC_USART3)}}) {
 
-  /* Disable DMA1 clocking */
-  rcc_req = {rcc_bus_e::AHB, rcc_ahb_periph_e::RCC_DMA1};
-  if ((rc = ::ioctl(rcc, rcc_fd, rcc_drv_ioctl_cmd_e::RCC_DISABLE_CLOCK, &rcc_req, sizeof(rcc_req))) < 0) {
-    // errno = ???
-    usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
+    rcc_req = {.bus = req.bus, .periph = req.periph};
+    if ((rc = ::ioctl(rcc, rcc_fd, rcc_drv_ioctl_cmd_e::RCC_DISABLE_CLOCK, &rcc_req, sizeof(rcc_req))) < 0) {
+      // errno = ???
+      usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
   }
 
   /* Close rcc file */
@@ -242,42 +279,49 @@ void usart_drv_exit(const struct drv_model_cmn_s *drv) {
     goto error;
   }
 
-  /* Open GPIO device */
-  if ((gpio_fd = ::open(gpio, usart_gpio_port_letter, 3, 2u)) < 0) {
-    // errno = ???
-    usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
-  }
+  for (const usart_device_e &usartdev : {USARTDEV1, USARTDEV2, USARTDEV3}) {
+    /* Open GPIO device */
+    if ((gpio_fd = ::open(gpio, usart_gpio_port_letters[usartdev], 3, 2u)) < 0) {
+      // errno = ???
+      usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
 
-  gpio_req = {.pin = USART1_tx_pin_no};
-  if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_SP_IFLOAT, &gpio_req, sizeof(rcc_req))) < 0) {
-    // errno = ???
-    usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
-  }
+    gpio_req = {.pin = usart_tx_pins[usartdev]};
+    if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_SP_IFLOAT, &gpio_req, sizeof(rcc_req))) < 0) {
+      // errno = ???
+      usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
 
-  gpio_req = {.pin = USART1_rx_pin_no};
-  if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_SP_IFLOAT, &gpio_req, sizeof(rcc_req))) < 0) {
-    // errno = ???
-    usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
-  }
+    gpio_req = {.pin = usart_rx_pins[usartdev]};
+    if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_SP_IFLOAT, &gpio_req, sizeof(rcc_req))) < 0) {
+      // errno = ???
+      usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
 
-  /* Close gpio file */
-  if ((rc = ::close(gpio, gpio_fd)) < 0) {
-    usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
+    /* Close gpio file */
+    if ((rc = ::close(gpio, gpio_fd)) < 0) {
+      usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
   }
 
   usart_drv_USART1_fops.owner = nullptr;
+  usart_drv_USART2_fops.owner = nullptr;
+  usart_drv_USART3_fops.owner = nullptr;
 
-  /* Remove locks */
-  vSemaphoreDelete(USART1_lock);
-  vSemaphoreDelete(USART1_dma_lock);
-  vQueueDelete(USART1_fifo);
+  for (const usart_device_e &usartdev : {USARTDEV1, USARTDEV2, USARTDEV3}) {
 
-  /* Register char device for each GPIO port */
-  drv->unregister_chardev("usart1");
+    /* Remove locks */
+    vSemaphoreDelete(usart_locks[usartdev]);
+    vSemaphoreDelete(usart_dma_locks[usartdev]);
+    vQueueDelete(usart_fifos[usartdev]);
+
+    /* Unregister char device for each GPIO port */
+    drv->unregister_chardev(usart_dev_names[usartdev]);
+  }
 
   /* Initialize GPIO driver pointer */
   drv_ptr = nullptr;
@@ -286,7 +330,7 @@ error:
   return;
 }
 
-static int32_t usart_drv_USART1_open(int32_t, mode_t) {
+template <enum usart_device_e device> static int32_t usart_drv_open(int32_t, mode_t) {
   /* Check if device driver inited successfully */
   if (!drv_ptr) {
     usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
@@ -298,7 +342,7 @@ error:
   return -1;
 }
 
-static int32_t usart_drv_USART1_ioctl(uint64_t req, const void *buf, size_t size) {
+template <enum usart_device_e device> static int32_t usart_drv_ioctl(uint64_t req, const void *buf, size_t size) {
   /* Check if device driver inited successfully */
   if (!drv_ptr) {
     usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
@@ -309,54 +353,78 @@ static int32_t usart_drv_USART1_ioctl(uint64_t req, const void *buf, size_t size
 
   case USART_INIT: {
     const struct usart_setup_req_s *usart_req = reinterpret_cast<const struct usart_setup_req_s *>(buf);
-    GPIO_PinRemapConfig(GPIO_Remap_USART1, ENABLE);
+
+    // Remap USART1 pins
+    // if constexpr (device == USARTDEV1) {
+    //   GPIO_PinRemapConfig(GPIO_Remap_USART1, ENABLE);
+    // }
 
     USART_InitTypeDef usart;
     usart.USART_BaudRate = usart_req->baudrate;
-    usart.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-    usart.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-    usart.USART_Parity = USART_Parity_No;
-    usart.USART_StopBits = USART_StopBits_1;
-    usart.USART_WordLength = USART_WordLength_8b;
-    USART_Init(USART1, &usart);
+    usart.USART_HardwareFlowControl = usart_hw_low_ctrl[usart_req->hw_flow_ctrl];
+    usart.USART_Mode = usart_mode[usart_req->mode];
+    usart.USART_Parity = usart_parity[usart_req->parity];
+    usart.USART_StopBits = usart_stop_bits[usart_req->sb];
+    usart.USART_WordLength = usart_word_len[usart_req->wl];
+    USART_Init(usart_devices[device], &usart);
 
-    USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
-    DMA_ITConfig(DMA1_Channel4, DMA_IT_TC, ENABLE);
-    USART_Cmd(USART1, ENABLE);
+    USART_ITConfig(usart_devices[device], USART_IT_RXNE, ENABLE);
 
-    g_pfnVectorsRam[DMA1_Channel4_IRQHandler_Vector] = USART1_dma_irq_handler;
-    g_pfnVectorsRam[USART1_IRQHandler_Vector] = USART1_irq_handler;
+    // Enable DMA on USART1
+    if constexpr (device == USARTDEV1) {
+      DMA_ITConfig(DMA1_Channel4, DMA_IT_TC, ENABLE);
+    }
 
-    NVIC_SetPriority(USART1_IRQn, usart_req->irq_priority);
-    NVIC_EnableIRQ(USART1_IRQn);
-    NVIC_SetPriority(DMA1_Channel4_IRQn, usart_req->irq_priority);
-    NVIC_EnableIRQ(DMA1_Channel4_IRQn);
+    USART_Cmd(usart_devices[device], ENABLE);
+
+    // Enable DMA interrupt on USART1
+    if constexpr (device == USARTDEV1) {
+      g_pfnVectorsRam[DMA1_Channel4_IRQHandler_Vector] = usart_dma_irq_handler<device>;
+    }
+
+    g_pfnVectorsRam[usart_vectors[device]] = usart_irq_handler<device>;
+
+    NVIC_SetPriority(usart_irqs[device], usart_req->irq_priority);
+    NVIC_EnableIRQ(usart_irqs[device]);
+
+    // Enable DMA irq on USART1
+    if constexpr (device == USARTDEV1) {
+      NVIC_SetPriority(DMA1_Channel4_IRQn, usart_req->irq_priority);
+      NVIC_EnableIRQ(DMA1_Channel4_IRQn);
+    }
 
   } break;
 
   case USART_DEINIT: {
     const struct usart_setup_req_s *usart_req = reinterpret_cast<const struct usart_setup_req_s *>(buf);
     USART_InitTypeDef usart;
-	GPIO_PinRemapConfig(GPIO_Remap_USART1, DISABLE);
-    USART_Cmd(USART1, DISABLE);
-    USART_DeInit(USART1);
-    USART_ITConfig(USART1, USART_IT_RXNE, DISABLE);
-    DMA_ITConfig(DMA1_Channel4, DMA_IT_TC, DISABLE);
-    NVIC_DisableIRQ(USART1_IRQn);
-    NVIC_DisableIRQ(DMA1_Channel4_IRQn);
 
-    g_pfnVectorsRam[DMA1_Channel4_IRQHandler_Vector] = nullptr;
-    g_pfnVectorsRam[USART1_IRQHandler_Vector] = nullptr;
+    // if constexpr (device == USARTDEV1) {
+    //   GPIO_PinRemapConfig(GPIO_Remap_USART1, DISABLE);
+    // }
+
+    USART_Cmd(usart_devices[device], DISABLE);
+    USART_DeInit(usart_devices[device]);
+    USART_ITConfig(usart_devices[device], USART_IT_RXNE, DISABLE);
+
+    if constexpr (device == USARTDEV1) {
+      DMA_ITConfig(DMA1_Channel4, DMA_IT_TC, DISABLE);
+      NVIC_DisableIRQ(DMA1_Channel4_IRQn);
+      g_pfnVectorsRam[DMA1_Channel4_IRQHandler_Vector] = nullptr;
+    }
+
+    NVIC_DisableIRQ(usart_irqs[device]);
+    g_pfnVectorsRam[usart_vectors[device]] = nullptr;
   } break;
 
   case USART_ON_RECV: {
     const struct usart_callback_req_s *usart_req = reinterpret_cast<const struct usart_callback_req_s *>(buf);
-    USART1_on_recv_callback = usart_req->callback;
+    usart_on_recv_callbacks[device] = usart_req->callback;
   } break;
 
   case USART_ON_SEND: {
     const struct usart_callback_req_s *usart_req = reinterpret_cast<const struct usart_callback_req_s *>(buf);
-    USART1_on_send_callback = usart_req->callback;
+    usart_on_send_callbacks[device] = usart_req->callback;
   } break;
   }
 
@@ -365,11 +433,11 @@ error:
   return -1;
 }
 
-static int32_t usart_drv_USART1_read(void *const buf, size_t size) {
+template <enum usart_device_e device> static int32_t usart_drv_read(void *const buf, size_t size) {
   BaseType_t rc;
 
   for (size_t nbyte = 0u; nbyte < size; nbyte++) {
-    if ((rc = xQueueReceive(USART1_fifo, reinterpret_cast<char *const>(buf) + nbyte, portIO_MAX_DELAY)) != pdPASS) {
+    if ((rc = xQueueReceive(usart_fifos[device], reinterpret_cast<char *const>(buf) + nbyte, portIO_MAX_DELAY)) != pdPASS) {
       usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }
@@ -380,7 +448,7 @@ error:
   return -1;
 }
 
-static int32_t usart_drv_USART1_write(const void *buf, size_t size) {
+template <enum usart_device_e device> static int32_t usart_drv_write(const void *buf, size_t size) {
   // BaseType_t rc;
   // DMA_InitTypeDef dma;
 
@@ -408,9 +476,9 @@ static int32_t usart_drv_USART1_write(const void *buf, size_t size) {
   // DMA_Cmd(DMA1_Channel4, ENABLE);
 
   for (uint32_t i = 0u; i < size; i++) {
-    while (!USART_GetFlagStatus(USART1, USART_FLAG_TC))
+    while (!USART_GetFlagStatus(usart_devices[device], USART_FLAG_TC))
       ;
-    USART_SendData(USART1, static_cast<const char *>(buf)[i]);
+    USART_SendData(usart_devices[device], static_cast<const uint8_t *>(buf)[i]);
   }
 
   return size;
@@ -418,7 +486,7 @@ error:
   return -1;
 }
 
-static int32_t usart_drv_USART1_close() {
+template <enum usart_device_e device> static int32_t usart_drv_close() {
   /* Check if device driver inited successfully */
   if (!drv_ptr) {
     usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
@@ -430,17 +498,17 @@ error:
   return -1;
 }
 
-static void USART1_irq_handler() {
+template <enum usart_device_e device> static void usart_irq_handler() {
   BaseType_t rc;
   portBASE_TYPE hp_task_woken;
   char *buf, recvd;
 
-  if (USART_GetITStatus(USART1, USART_IT_RXNE)) {
-    recvd = USART_ReceiveData(USART1);
-    if (USART1_on_recv_callback) {
+  if (USART_GetITStatus(usart_devices[device], USART_IT_RXNE)) {
+    recvd = USART_ReceiveData(usart_devices[device]);
+    if (usart_on_recv_callbacks[device]) {
       buf = reinterpret_cast<char *>(malloc(sizeof(char)));
       *buf = recvd;
-      typename events_worker_s::event_s event{.handler = USART1_on_recv_callback, .data = buf, .size = sizeof(char)};
+      typename events_worker_s::event_s event{.handler = usart_on_recv_callbacks[device], .data = buf, .size = sizeof(char)};
 
       if ((rc = xQueueSendToBackFromISR(events_worker_queue, &event, &hp_task_woken)) != pdPASS) {
         goto exit;
@@ -451,14 +519,14 @@ static void USART1_irq_handler() {
       }
     }
 
-    if ((rc = xQueueSendToBackFromISR(USART1_fifo, &recvd, &hp_task_woken)) != pdPASS) {
+    if ((rc = xQueueSendToBackFromISR(usart_fifos[device], &recvd, &hp_task_woken)) != pdPASS) {
       goto exit;
     }
-  } else if (USART_GetITStatus(USART1, USART_IT_TC)) {
-    if (USART1_on_send_callback) {
+  } else if (USART_GetITStatus(usart_devices[device], USART_IT_TC)) {
+    if (usart_on_send_callbacks[device]) {
       buf = reinterpret_cast<char *>(malloc(sizeof(char)));
-      *buf = USART1->DR;
-      typename events_worker_s::event_s event{.handler = USART1_on_send_callback, .data = buf, .size = sizeof(char)};
+      *buf = usart_devices[device]->DR;
+      typename events_worker_s::event_s event{.handler = usart_on_send_callbacks[device], .data = buf, .size = sizeof(char)};
 
       if ((rc = xQueueSendToBackFromISR(events_worker_queue, &event, &hp_task_woken)) != pdPASS) {
         goto exit;
@@ -474,14 +542,14 @@ exit:
   return;
 }
 
-static void USART1_dma_irq_handler() {
+template <enum usart_device_e device> static void usart_dma_irq_handler() {
   BaseType_t rc;
   portBASE_TYPE hp_task_woken;
   if (DMA_GetITStatus(DMA1_IT_TC4)) {
 
     DMA_ClearITPendingBit(DMA1_Channel4_IRQn);
     DMA_ClearFlag(DMA1_IT_GL4 | DMA1_IT_HT4 | DMA1_IT_TE4 | DMA1_IT_TC4);
-    if ((rc = xSemaphoreGiveFromISR(USART1_dma_lock, &hp_task_woken)) != pdPASS) {
+    if ((rc = xSemaphoreGiveFromISR(usart_dma_locks[device], &hp_task_woken)) != pdPASS) {
       goto clear_irq_bits;
     }
 
@@ -517,7 +585,7 @@ static int32_t usart_printf(const char *fmt, ...) {
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, console_devstr, 3, 3u)) < 0) {
       goto error;
     }
 
@@ -541,7 +609,7 @@ static int32_t usart_printf(const char *fmt, ...) {
     }
   }
 
- exit:
+exit:
   free(temp);
   return strlen;
 error:

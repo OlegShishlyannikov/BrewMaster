@@ -13,6 +13,10 @@ extern bool debug_log_enabled;
 static bool task_running;
 static xSemaphoreHandle state_sem;
 
+static constexpr const char *console_driver_name = "usart";
+static constexpr const char *console_device_name = "usart1";
+static constexpr const char *console_device_path = "usart/usart1";
+
 static void beep_short();
 static void beep_long();
 
@@ -20,6 +24,12 @@ static void relay_load_on(int32_t);
 static void relay_load_off(int32_t);
 static void relay_load_switch(int32_t);
 static bool get_relay_state(int32_t);
+
+static void vfd_run_fwd();
+static void vfd_run_rev();
+static void vfd_set_freq(uint32_t);
+static void vfd_chdir();
+static void vfd_stop();
 
 static void up_key_press_cbk(const void *, size_t);
 static void down_key_press_cbk(const void *, size_t);
@@ -43,7 +53,7 @@ static void forward_key_release();
 static void backward_key_press();
 static void backward_key_release();
 
-static constexpr const int32_t max_angle = 179, min_angle = -179, static_return_error_abs_val = 3;
+static constexpr const int32_t max_angle = 179, min_angle = -179, static_return_error_abs_val = 0;
 static int32_t current_angle = 0, absolute_angle = 0, set_angle = 0, relative_angle_correction = 0, target_angle = 0, return_angle = 0;
 
 static void display_angles();
@@ -63,10 +73,11 @@ static enum bender_app_state_e : int32_t {
   BENDER_APP_STATE_BENDING_RETURNING_FROM_NEGATIVE,
   BENDER_APP_STATE_BENDING_RETURNING_FROM_POSITIVE
 } bender_app_state = BENDER_APP_STATE_IDLE;
+
 static bender_app_state_e bender_app_prev_state = BENDER_APP_STATE_UNKNOWN;
 
 void bender_app_s::entry(void *args) {
-  int32_t rc, zsp3806g2e_fd, ui_fd, gpio_fd;
+  int32_t rc, zsp3806g2e_fd, ui_fd, gpio_fd, vfd_fd;
   uint16_t gpio_val, angle_raw;
 
   task_running = true;
@@ -77,6 +88,12 @@ void bender_app_s::entry(void *args) {
   set_key_cbks();
 
   state_sem = xSemaphoreCreateMutex();
+
+  // Set console char recvd callback
+  if ((vfd_fd = ::open(&sys, "modbus/modbus0", 3, 2u)) < 0) {
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto exit;
+  }
 
 loop:
   while (task_running) {
@@ -274,13 +291,13 @@ int32_t bender_app_s::bender_dbg_printfmt(const char *fmt, ...) {
     goto exit;
   }
 
-  if (!(usart = sys.drv("usart"))) {
+  if (!(usart = sys.drv(console_driver_name))) {
     bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, console_device_name, 3, 3u)) < 0) {
       bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }
@@ -319,58 +336,11 @@ error:
   return -1;
 }
 
-int32_t bender_app_s::dbg_printfmt(const char *fmt, ...) {
-  int32_t rc, usart_fd, strlen;
-  static char *temp;
-  const struct drv_model_cmn_s *usart;
-
-  std::va_list arg;
-  va_start(arg, fmt);
-  size_t bufsz = std::vsnprintf(nullptr, 0u, fmt, arg);
-  temp = static_cast<char *>(std::calloc(bufsz, sizeof(char)));
-  strlen = std::vsprintf(temp, fmt, arg);
-  va_end(arg);
-
-  if (!(usart = sys.drv("usart"))) {
-    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
-  }
-
-  if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
-      bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-
-    if ((rc = ::write(usart, usart_fd, temp, std::strlen(temp))) < 0) {
-      if ((rc = ::close(usart, usart_fd)) < 0) {
-        bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-        goto error;
-      }
-
-      bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-
-    if ((rc = ::close(usart, usart_fd)) < 0) {
-      bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-  }
-
-  std::free(temp);
-  return strlen;
-error:
-
-  std::free(temp);
-  return -1;
-}
-
 int32_t bender_app_s::bender_dbg_nprint(void *ptr, size_t n) {
   int32_t rc, usart_fd;
-  const struct drv_model_cmn_s *usart = sys.drv("usart");
+  const struct drv_model_cmn_s *usart = sys.drv(console_driver_name);
 
-  if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+  if ((usart_fd = ::open(usart, console_device_name, 3, 3u)) < 0) {
     bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
@@ -646,7 +616,9 @@ static void forward_key_press() {
 
     // If it has been invoked from state machine -- do nothing to don't bother the bending process
   case BENDER_APP_STATE_RETURNING_TO_ZERO ... BENDER_APP_STATE_BENDING_RETURNING_FROM_POSITIVE: {
-    relay_load_on(0u);
+    // relay_load_on(0u);
+
+    vfd_run_fwd();
   } break;
 
     // If it has been onvoked manually from IDLE state
@@ -662,7 +634,8 @@ static void forward_key_press_cbk(const void *data, size_t size) {
     // If it has been onvoked manually from IDLE state
   case BENDER_APP_STATE_IDLE: {
     if (!get_relay_state(0u) && !get_relay_state(1u)) {
-      relay_load_on(0u);
+      // relay_load_on(0u);
+      vfd_run_fwd();
       bender_app_prev_state = BENDER_APP_STATE_IDLE;
       beep_short();
     }
@@ -680,11 +653,12 @@ static void forward_key_release() {
 
     // If it has been invoked from state machine -- do nothing to don't bother the bending process
   case BENDER_APP_STATE_RETURNING_TO_ZERO ... BENDER_APP_STATE_BENDING_RETURNING_FROM_POSITIVE: {
-    relay_load_off(0u);
-    vTaskDelay(10);
-    relay_load_on(1u);
-    vTaskDelay(42);
-    relay_load_off(1u);
+    // relay_load_off(0u);
+    // vTaskDelay(10);
+    // relay_load_on(1u);
+    // vTaskDelay(42);
+    // relay_load_off(1u);
+    vfd_stop();
   } break;
 
     // If it has been onvoked manually from IDLE state
@@ -699,11 +673,12 @@ static void forward_key_release_cbk(const void *data, size_t size) {
 
     // If it has been onvoked manually from IDLE state
   case BENDER_APP_STATE_IDLE: {
-    relay_load_off(0u);
-    vTaskDelay(10);
-    relay_load_on(1u);
-    vTaskDelay(42);
-    relay_load_off(1u);
+    // relay_load_off(0u);
+    // vTaskDelay(10);
+    // relay_load_on(1u);
+    // vTaskDelay(42);
+    // relay_load_off(1u);
+    vfd_stop();
   } break;
 
     // If it has been invoked from state machine -- do nothing to don't bother the bending process
@@ -718,7 +693,8 @@ static void backward_key_press() {
 
     // If it has been invoked from state machine -- do nothing to don't bother the bending process
   case BENDER_APP_STATE_RETURNING_TO_ZERO ... BENDER_APP_STATE_BENDING_RETURNING_FROM_POSITIVE: {
-    relay_load_on(1u);
+    // relay_load_on(1u);
+    vfd_run_rev();
   } break;
 
     // If it has been onvoked manually from IDLE state
@@ -734,7 +710,8 @@ static void backward_key_press_cbk(const void *data, size_t size) {
     // If it has been onvoked manually from IDLE state
   case BENDER_APP_STATE_IDLE: {
     if (!get_relay_state(0u) && !get_relay_state(1u)) {
-      relay_load_on(1u);
+      // relay_load_on(1u);
+      vfd_run_rev();
       bender_app_prev_state = BENDER_APP_STATE_IDLE;
       beep_short();
     }
@@ -752,11 +729,12 @@ static void backward_key_release() {
 
     // If it has been invoked from state machine -- do nothing to don't bother the bending process
   case BENDER_APP_STATE_RETURNING_TO_ZERO ... BENDER_APP_STATE_BENDING_RETURNING_FROM_POSITIVE: {
-    relay_load_off(1u);
-    vTaskDelay(10);
-    relay_load_on(0u);
-    vTaskDelay(50);
-    relay_load_off(0u);
+    // relay_load_off(1u);
+    // vTaskDelay(10);
+    // relay_load_on(0u);
+    // vTaskDelay(50);
+    // relay_load_off(0u);
+    vfd_stop();
   } break;
 
     // If it has been onvoked manually from IDLE state
@@ -772,11 +750,12 @@ static void backward_key_release_cbk(const void *data, size_t size) {
 
     // If it has been onvoked manually from IDLE state
   case BENDER_APP_STATE_IDLE: {
-    relay_load_off(1u);
-    vTaskDelay(10);
-    relay_load_on(0u);
-    vTaskDelay(50);
-    relay_load_off(0u);
+    // relay_load_off(1u);
+    // vTaskDelay(10);
+    // relay_load_on(0u);
+    // vTaskDelay(50);
+    // relay_load_off(0u);
+    vfd_stop();
   } break;
 
     // If it has been invoked from state machine -- do nothing to don't bother the bending process
@@ -991,4 +970,173 @@ static int32_t read_angle() {
   return angle;
 error:
   return min_angle - 1;
+}
+
+static void vfd_run_fwd() {
+  int32_t fd, rc;
+
+  if ((fd = ::open(&sys, "vfd/vfd0", 3, 2u)) < 0) {
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+  if ((rc = ::ioctl(&sys, "vfd/vfd0", vfd_ioctl_cmd_e::VFD_SET_FWD, nullptr, 0u)) < 0) {
+    if ((rc = ::close(&sys, console_device_path)) < 0) {
+      bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
+
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+  vTaskDelay(25u);
+
+  if ((rc = ::ioctl(&sys, "vfd/vfd0", vfd_ioctl_cmd_e::VFD_RUN, nullptr, 0u)) < 0) {
+    if ((rc = ::close(&sys, console_device_path)) < 0) {
+      bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
+
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+  vTaskDelay(25u);
+
+  if ((rc = ::close(&sys, console_device_path)) < 0) {
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+error:
+  return;
+}
+
+static void vfd_run_rev() {
+  int32_t fd, rc;
+
+  if ((fd = ::open(&sys, "vfd/vfd0", 3, 2u)) < 0) {
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+  if ((rc = ::ioctl(&sys, "vfd/vfd0", vfd_ioctl_cmd_e::VFD_SET_REV, nullptr, 0u)) < 0) {
+    if ((rc = ::close(&sys, console_device_path)) < 0) {
+      bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
+
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+  vTaskDelay(25u);
+
+  if ((rc = ::ioctl(&sys, "vfd/vfd0", vfd_ioctl_cmd_e::VFD_RUN, nullptr, 0u)) < 0) {
+    if ((rc = ::close(&sys, console_device_path)) < 0) {
+      bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
+
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+  vTaskDelay(25u);
+
+  if ((rc = ::close(&sys, console_device_path)) < 0) {
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+error:
+  return;
+}
+
+static void vfd_set_freq(uint32_t freq) {
+  int32_t fd, rc;
+
+  if ((fd = ::open(&sys, "vfd/vfd0", 3, 2u)) < 0) {
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+  if ((rc = ::ioctl(&sys, "vfd/vfd0", vfd_ioctl_cmd_e::VFD_SET_FREQ, &freq, sizeof(freq))) < 0) {
+    if ((rc = ::close(&sys, console_device_path)) < 0) {
+      bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
+
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+  vTaskDelay(25u);
+
+  if ((rc = ::close(&sys, console_device_path)) < 0) {
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+error:
+  return;
+}
+
+static void vfd_chdir() {
+  int32_t fd, rc;
+
+  if ((fd = ::open(&sys, "vfd/vfd0", 3, 2u)) < 0) {
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+  if ((rc = ::ioctl(&sys, "vfd/vfd0", vfd_ioctl_cmd_e::VFD_CHANGE_DIR, nullptr, 0u)) < 0) {
+    if ((rc = ::close(&sys, console_device_path)) < 0) {
+      bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
+
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+  vTaskDelay(25u);
+
+  if ((rc = ::close(&sys, console_device_path)) < 0) {
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+error:
+  return;
+}
+
+static void vfd_stop() {
+  int32_t fd, rc;
+
+  if ((fd = ::open(&sys, "vfd/vfd0", 3, 2u)) < 0) {
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+  if ((rc = ::ioctl(&sys, "vfd/vfd0", vfd_ioctl_cmd_e::VFD_OFF, nullptr, 0u)) < 0) {
+    if ((rc = ::close(&sys, console_device_path)) < 0) {
+      bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+      goto error;
+    }
+
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+  vTaskDelay(25u);
+
+  if ((rc = ::close(&sys, console_device_path)) < 0) {
+    bender_app_s::bender_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+error:
+  return;
 }

@@ -20,6 +20,8 @@ static const struct drv_model_cmn_s *drv_ptr;
 static xSemaphoreHandle rtc_lock;
 extern xQueueHandle events_worker_queue;
 
+static constexpr const char *console_devstr = "usart1";
+
 static bool rtc_gettime(struct rtc_s *const);  /* Get time */
 static bool rtc_settime(const struct rtc_s *); /* Set time */
 extern bool debug_log_enabled;
@@ -264,7 +266,7 @@ static int32_t rtc_drv_printf(const char *fmt, ...) {
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, console_devstr, 3, 3u)) < 0) {
       rtc_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }

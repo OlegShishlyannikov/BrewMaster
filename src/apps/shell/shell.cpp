@@ -6,6 +6,13 @@
 
 extern struct sys_impl_s &sys;
 
+static constexpr const char *uname = "root";
+static constexpr const char *system_name = "brewmaster_controller";
+static constexpr const char *homedir_name = "/";
+static constexpr const char *console_driver_name = "usart";
+static constexpr const char *console_device_name = "usart1";
+static constexpr const char *console_device_path = "usart/usart1";
+
 static uint32_t cursor_x_pos = 0u;
 static uint32_t cursor_y_pos = 0u;
 static enum shell_fsm_state_e state;
@@ -24,10 +31,6 @@ void shell_app_s::entry(void *cl_args) {
     .callback = console_char_recvd_callback
   };
 
-  static const char *uname = "root";
-  static const char *system_name = "brewmaster_controller";
-  static const char *homedir_name = "/";
-
   // Split string to args
   std::strncpy(argsbuffer, args, arg_str_len);
   p = std::strtok(argsbuffer, " ");
@@ -43,18 +46,18 @@ void shell_app_s::entry(void *cl_args) {
   free(argv);
 
   // Set console char recvd callback
-  if ((console_fd = ::open(&sys, "usart/usart1", 3, 2u)) < 0) {
+  if ((console_fd = ::open(&sys, console_device_path, 3, 2u)) < 0) {
     goto error;
   }
 
-  if ((rc = ::ioctl(&sys, "usart/usart1", usart_ioctl_cmd_e::USART_ON_RECV, &console_cbk_req, sizeof(console_cbk_req))) < 0) {
-    if ((rc = ::close(&sys, "usart/usart1")) < 0) {
+  if ((rc = ::ioctl(&sys, console_device_path, usart_ioctl_cmd_e::USART_ON_RECV, &console_cbk_req, sizeof(console_cbk_req))) < 0) {
+    if ((rc = ::close(&sys, console_device_path)) < 0) {
       goto error;
     }
     goto error;
   }
 
-  if ((rc = ::close(&sys, "usart/usart1")) < 0) {
+  if ((rc = ::close(&sys, console_device_path)) < 0) {
     goto error;
   }
 
@@ -84,7 +87,7 @@ void shell_app_s::console_char_recvd_callback(const void *data, size_t size) {
   } break;
 
   case SHELL_APP_FSM_STATE_WAITING: {
-    static constexpr const uint64_t pass_hash = hash_64_fnv1a_const("brewmaster");
+    static constexpr const uint64_t pass_hash = hash_64_fnv1a_const("bender");
     static char password_buffer[16u]{0x00};
 
     // Wait for password
@@ -93,39 +96,27 @@ void shell_app_s::console_char_recvd_callback(const void *data, size_t size) {
       // Check password on enter key pressed
       if (hash_64_fnv1a(password_buffer) == pass_hash) {
         shell_printfmt("%s%s", ASCII_CONTROL_ERASE_LINE, ASCII_CONTROL_CURSOR_LINE_BEGIN);
-        shell_printfmt("======================================================================================================\r\n"
-                       "=  ====  ====  ==        ==  ==========     =====    ====  =====  ==        =======        ====    ===\r\n"
-                       "=  ====  ====  ==  ========  =========  ===  ===  ==  ===   ===   ==  ================  ======  ==  ==\r\n"
-                       "=  ====  ====  ==  ========  ========  ========  ====  ==  =   =  ==  ================  =====  ====  =\r\n"
-                       "=  ====  ====  ==  ========  ========  ========  ====  ==  == ==  ==  ================  =====  ====  =\r\n"
-                       "=   ==    ==  ===      ====  ========  ========  ====  ==  =====  ==      ============  =====  ====  =\r\n"
-                       "==  ==    ==  ===  ========  ========  ========  ====  ==  =====  ==  ================  =====  ====  =\r\n"
-                       "==  ==    ==  ===  ========  ========  ========  ====  ==  =====  ==  ================  =====  ====  =\r\n"
-                       "===    ==    ====  ========  =========  ===  ===  ==  ===  =====  ==  ================  ======  ==  ==\r\n"
-                       "====  ====  =====        ==        ====     =====    ====  =====  ==        ==========  =======    ===\r\n"
-                       "======================================================================================================\r\n"
-                       "=============================================================================================================="
-                       "=\r\n"
-                       "=      ====       ===        ==  ====  ====  ==  =====  =====  ======      ===        ==        ==       ===  "
-                       "=\r\n"
-                       "=  ===  ===  ====  ==  ========  ====  ====  ==   ===   ====    ====  ====  =====  =====  ========  ====  ==  "
-                       "=\r\n"
-                       "=  ====  ==  ====  ==  ========  ====  ====  ==  =   =  ===  ==  ===  ====  =====  =====  ========  ====  ==  "
-                       "=\r\n"
-                       "=  ===  ===  ===   ==  ========  ====  ====  ==  == ==  ==  ====  ===  ==========  =====  ========  ===   ==  "
-                       "=\r\n"
-                       "=      ====      ====      ====   ==    ==  ===  =====  ==  ====  =====  ========  =====      ====      ====  "
-                       "=\r\n"
-                       "=  ===  ===  ====  ==  =========  ==    ==  ===  =====  ==        =======  ======  =====  ========  ====  ==  "
-                       "=\r\n"
-                       "=  ====  ==  ====  ==  =========  ==    ==  ===  =====  ==  ====  ==  ====  =====  =====  ========  ====  "
-                       "=====\r\n"
-                       "=  ===  ===  ====  ==  ==========    ==    ====  =====  ==  ====  ==  ====  =====  =====  ========  ====  ==  "
-                       "=\r\n"
-                       "=      ====  ====  ==        =====  ====  =====  =====  ==  ====  ===      ======  =====        ==  ====  ==  "
-                       "=\r\n"
-                       "=============================================================================================================="
-                       "=\r\n");
+
+        shell_printfmt("██╗    ██╗███████╗██╗      ██████╗ ██████╗ ███╗   ███╗███████╗    \r\n"
+                       "██║    ██║██╔════╝██║     ██╔════╝██╔═══██╗████╗ ████║██╔════╝    \r\n"
+                       "██║ █╗ ██║█████╗  ██║     ██║     ██║   ██║██╔████╔██║█████╗      \r\n"
+                       "██║███╗██║██╔══╝  ██║     ██║     ██║   ██║██║╚██╔╝██║██╔══╝      \r\n"
+                       "╚███╔███╔╝███████╗███████╗╚██████╗╚██████╔╝██║ ╚═╝ ██║███████╗    \r\n"
+                       " ╚══╝╚══╝ ╚══════╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝    \r\n"
+                       "                                                                  \r\n"
+                       "████████╗ ██████╗                                                 \r\n"
+                       "╚══██╔══╝██╔═══██╗                                                \r\n"
+                       "   ██║   ██║   ██║                                                \r\n"
+                       "   ██║   ██║   ██║                                                \r\n"
+                       "   ██║   ╚██████╔╝                                                \r\n"
+                       "   ╚═╝    ╚═════╝                                                 \r\n"
+                       "                                                                  \r\n"
+                       "██████╗ ███████╗███╗   ██╗██████╗ ███████╗██████╗ ██╗             \r\n"
+                       "██╔══██╗██╔════╝████╗  ██║██╔══██╗██╔════╝██╔══██╗██║             \r\n"
+                       "██████╔╝█████╗  ██╔██╗ ██║██║  ██║█████╗  ██████╔╝██║             \r\n"
+                       "██╔══██╗██╔══╝  ██║╚██╗██║██║  ██║██╔══╝  ██╔══██╗╚═╝             \r\n"
+                       "██████╔╝███████╗██║ ╚████║██████╔╝███████╗██║  ██║██╗             \r\n"
+                       "╚═════╝ ╚══════╝╚═╝  ╚═══╝╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝             \r\n");
 
         shell_printfmt(shell_promt_buffer);
         update_cursor_pos_(&cursor_x_pos, &cursor_y_pos, nullptr);
@@ -216,12 +207,12 @@ int32_t shell_app_s::shell_printfmt(const char *fmt, ...) {
   strlen = std::vsprintf(temp, fmt, arg);
   va_end(arg);
 
-  if (!(usart = sys.drv("usart"))) {
+  if (!(usart = sys.drv(console_driver_name))) {
     goto error;
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, console_device_name, 3, 3u)) < 0) {
       goto error;
     }
 

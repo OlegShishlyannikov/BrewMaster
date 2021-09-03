@@ -19,6 +19,7 @@
 /* This pointer will be used in interrupt handlers and will be initialized in driver init function */
 static const struct drv_model_cmn_s *drv_ptr;
 extern bool debug_log_enabled;
+static constexpr const char *console_devstr = "usart1";
 
 /* Latch, clock and data pins used */
 // static constexpr uint8_t zsp3806g2e_miso_pin = 5u, zsp3806g2e_cs_pin = 6u, zsp3806g2e_data_pin = 7u;
@@ -305,7 +306,7 @@ static int32_t zsp3806g2e_printf(const char *fmt, ...) {
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, console_devstr, 3, 3u)) < 0) {
       goto error;
     }
 

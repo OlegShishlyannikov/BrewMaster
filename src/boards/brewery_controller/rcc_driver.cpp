@@ -182,7 +182,7 @@ static int32_t rcc_drv_ioctl(uint64_t req, const void *buf, size_t size) {
     FLASH_PrefetchBufferCmd(FLASH_PrefetchBuffer_Enable);
     FLASH_SetLatency(FLASH_Latency_2);
 
-    RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_9);
+    RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_6);
     RCC_PLLCmd(ENABLE);
 
     while (!RCC_GetFlagStatus(RCC_FLAG_PLLRDY))

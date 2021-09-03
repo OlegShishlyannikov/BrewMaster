@@ -75,6 +75,8 @@ static const uint16_t spi_dir[]{SPI_Direction_2Lines_FullDuplex, SPI_Direction_2
 static const uint16_t spi_endianess[]{SPI_FirstBit_MSB, SPI_FirstBit_LSB};
 static const uint16_t spi_mode[]{SPI_Mode_Master, SPI_Mode_Slave};
 
+static constexpr const char *spi_drv_console_devstr = "usart1";
+
 /* SPI1 helper functions */
 static int32_t SPI1_flock() {
   /* Check if device driver inited successfully */
@@ -894,7 +896,7 @@ static int32_t spi_drv_SPI3_read(void *const buf, size_t size) {
     .seq = 0xffff
   };
   uint16_t recvd;
-  
+
   /* Check if device driver inited successfully */
   if (!drv_ptr) {
     spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
@@ -904,12 +906,12 @@ static int32_t spi_drv_SPI3_read(void *const buf, size_t size) {
   while (SPI_I2S_GetFlagStatus(spi_periph[2u], SPI_I2S_FLAG_BSY))
     ;
   SPI_I2S_SendData(spi_periph[2u], spi_seq_req.seq);
-  while(!SPI_I2S_GetFlagStatus(spi_periph[2u], SPI_I2S_FLAG_RXNE))
+  while (!SPI_I2S_GetFlagStatus(spi_periph[2u], SPI_I2S_FLAG_RXNE))
     ;
-  
-  recvd = SPI_I2S_ReceiveData(SPI3);  
-  *reinterpret_cast<uint16_t *>(buf)  = recvd;
-  
+
+  recvd = SPI_I2S_ReceiveData(SPI3);
+  *reinterpret_cast<uint16_t *>(buf) = recvd;
+
   // if (size % sizeof(uint16_t)) {
   //   uint16_t from_queue[size / sizeof(uint16_t) + 1u];
   //   for (size_t n = 0u; n < sizeof(from_queue) / sizeof(uint16_t); n++) {
@@ -945,7 +947,6 @@ static int32_t spi_drv_SPI3_write(const void *buf, size_t size) {
     while (SPI_I2S_GetFlagStatus(spi_periph[2u], SPI_I2S_FLAG_BSY))
       ;
     SPI_I2S_SendData(spi_periph[2u], reinterpret_cast<const uint16_t *>(buf)[i]);
-	
   }
 
   return 0;
@@ -1055,7 +1056,7 @@ static int32_t spi_drv_printf(const char *fmt, ...) {
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, spi_drv_console_devstr, 3, 3u)) < 0) {
       spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }

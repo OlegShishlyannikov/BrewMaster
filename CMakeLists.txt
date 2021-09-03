@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.6)
 
 project(bender_controller)
 
+set(PROJECT_NAME_CAP "${PROJECT_NAME}")
+string(TOUPPER "${PROJECT_NAME_CAP}" PROJECT_NAME_CAP)
+
 enable_language(ASM)
 enable_language(C)
 enable_language(CXX)
@@ -26,10 +29,10 @@ message("CMake ASM compiler is ${CMAKE_ASM_COMPILER}")
 message("CMake C compiler is ${CMAKE_C_COMPILER}")
 message("CMake CXX compiler is ${CMAKE_CXX_COMPILER}")
 
-set(CMAKE_ASM_FLAGS "-mthumb -mcpu=cortex-m3" CACHE INTERNAL "CMake asm flags")
-set(CMAKE_C_FLAGS "-O0 -g -pipe -mthumb -mcpu=cortex-m3 -std=gnu11 -ffunction-sections -fomit-frame-pointer -fdata-sections -fno-builtin -Wl,--gc-sections" CACHE INTERNAL "CMake c flags")
-set(CMAKE_CXX_FLAGS "-O0 -g -pipe -mthumb -mcpu=cortex-m3 -std=gnu++20 -flto -ffunction-sections -fomit-frame-pointer -fdata-sections -fno-builtin -fexceptions -Wl,--gc-sections -fconcepts-diagnostics-depth=4" CACHE INTERNAL "CMake cxx flags")
-set(CMAKE_EXE_LINKER_FLAGS "-O0 -g -pipe -mthumb -mcpu=cortex-m3 -flto -ffunction-sections -fomit-frame-pointer -fdata-sections -fno-builtin -fexceptions -Wl,--gc-sections -Wl,--no-wchar-size-warning --specs=nano.specs --specs=nosys.specs -lc -lnosys -Wl,-Map,${CMAKE_PROJECT_NAME}.map  -u _printf_float -u _scanf_float" CACHE INTERNAL "CMake exe linker flags")
+set(CMAKE_ASM_FLAGS "-mthumb -mcpu=cortex-m3 -D${PROJECT_NAME_CAP}_APP" CACHE INTERNAL "CMake asm flags")
+set(CMAKE_C_FLAGS "-O0 -g -pipe -mthumb -mcpu=cortex-m3 -std=gnu11 -ffunction-sections -fomit-frame-pointer -fdata-sections -fno-builtin -Wl,--gc-sections -D${PROJECT_NAME_CAP}_APP" CACHE INTERNAL "CMake c flags")
+set(CMAKE_CXX_FLAGS "-O0 -g -pipe -mthumb -mcpu=cortex-m3 -std=gnu++20 -flto -ffunction-sections -fomit-frame-pointer -fdata-sections -fno-builtin -fexceptions -Wl,--gc-sections -fconcepts-diagnostics-depth=4 -D${PROJECT_NAME_CAP}_APP" CACHE INTERNAL "CMake cxx flags")
+set(CMAKE_EXE_LINKER_FLAGS "-O0 -g -pipe -mthumb -mcpu=cortex-m3 -flto -ffunction-sections -fomit-frame-pointer -fdata-sections -fno-builtin -fexceptions -Wl,--gc-sections -Wl,--no-wchar-size-warning --specs=nano.specs --specs=nosys.specs -lc -lnosys -Wl,-Map,${CMAKE_PROJECT_NAME}.map  -u _printf_float -u _scanf_float -D${PROJECT_NAME_CAP}_APP" CACHE INTERNAL "CMake exe linker flags")
 
 set(C_SYSTEM_HEADERS_PATH "/usr/arm-none-eabi/include/")
 set(CXX_SYSTEM_HEADERS_PATH "/usr/arm-none-eabi/include/c++/10.2.0/")
@@ -149,7 +152,13 @@ file(GLOB PROJECT_REBOOT_APP_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/reboot/*.cxx"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/reboot/*.s" CACHE INTERNAL "Project reboot app sources")
 
-set(HSE_VALUE 8000000)
+file(GLOB PROJECT_MODBUS_APP_SOURCES
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/modbus/*.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/modbus/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/modbus/*.cxx"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/apps/modbus/*.s" CACHE INTERNAL "Project modbus app sources")
+
+set(HSE_VALUE 12000000)
 set(MCU_DEVICE STM32F10X_XL)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D${MCU_DEVICE} -DHSE_VALUE=${HSE_VALUE} -DUSE_STDPERIPH_DRIVER" CACHE INTERNAL "CMake c flags")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D${MCU_DEVICE} -DHSE_VALUE=${HSE_VALUE} -DUSE_STDPERIPH_DRIVER" CACHE INTERNAL "CMake cxx flags")
@@ -175,7 +184,8 @@ add_executable(${CMAKE_PROJECT_NAME}.elf
   ${PROJECT_BREWERY_APP_SOURCES}
   ${PROJECT_BENDER_APP_SOURCES}
   ${PROJECT_DEBUG_APP_SOURCES}
-  ${PROJECT_REBOOT_APP_SOURCES})
+  ${PROJECT_REBOOT_APP_SOURCES}
+  ${PROJECT_MODBUS_APP_SOURCES})
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/clang_complete.in ${CMAKE_CURRENT_SOURCE_DIR}/.clang_complete)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/clang_complete_c.in ${CMAKE_CURRENT_SOURCE_DIR}/src/lfs/.clang_complete)

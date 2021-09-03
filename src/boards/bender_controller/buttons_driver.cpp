@@ -17,6 +17,7 @@
 static const struct drv_model_cmn_s *drv_ptr;
 extern xQueueHandle events_worker_queue;
 
+static constexpr const char *buttons_drv_console_devstr = "usart1";
 // Global flags
 extern bool debug_log_enabled;
 
@@ -885,7 +886,7 @@ static int32_t buttons_printf(const char *fmt, ...) {
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, buttons_drv_console_devstr, 3, 3u)) < 0) {
       goto error;
     }
 
