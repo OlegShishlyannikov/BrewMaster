@@ -48,7 +48,7 @@ static int32_t ic74hc595_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(ic74hc595_lock, portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(ic74hc595_lock, portMAX_DELAY)) != pdPASS) {
     // errno = ???
     ic74hc595_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;

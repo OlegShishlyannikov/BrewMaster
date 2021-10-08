@@ -2,8 +2,8 @@
 -I/home/user/Projects/bender_controller/spl/inc
 -I/home/user/Projects/bender_controller/rtos/inc
 -I/home/user/Projects/bender_controller/inc
--isystem /usr/arm-none-eabi/include/
--isystem /usr/arm-none-eabi/include/c++/10.2.0/
+-isystem /home/user/CrossCompile/gcc-arm-10.3-2021.07-x86_64-arm-none-eabi/arm-none-eabi/include/
+-isystem /home/user/CrossCompile/gcc-arm-10.3-2021.07-x86_64-arm-none-eabi/arm-none-eabi/include/c++/10.3.1/
 -DSTM32F10X_XL
--DHSE_VALUE=12000000
+-DHSE_VALUE=8000000
 -std=gnu11

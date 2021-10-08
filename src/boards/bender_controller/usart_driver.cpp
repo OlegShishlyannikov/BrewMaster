@@ -22,9 +22,9 @@ extern xQueueHandle events_worker_queue;
 
 /* RX & TX pins */
 enum usart_device_e : uint32_t { USARTDEV1 = 0u, USARTDEV2, USARTDEV3, USARTDEV_MAX };
-static constexpr const char *usart_gpio_port_letters[] = {"A", "A", "B"};
-static constexpr const uint8_t usart_tx_pins[USARTDEV_MAX] = {9u, 2u, 10u};
-static constexpr const uint8_t usart_rx_pins[USARTDEV_MAX] = {10u, 3u, 11u};
+static constexpr const char *usart_gpio_port_letters[] = {"B", "A", "B"};
+static constexpr const uint8_t usart_tx_pins[USARTDEV_MAX] = {6u, 2u, 10u};
+static constexpr const uint8_t usart_rx_pins[USARTDEV_MAX] = {7u, 3u, 11u};
 static constexpr enum isr_vectors_e usart_vectors[USARTDEV_MAX] = {USART1_IRQHandler_Vector, USART2_IRQHandler_Vector, USART3_IRQHandler_Vector};
 static constexpr enum IRQn usart_irqs[USARTDEV_MAX] = {USART1_IRQn, USART2_IRQn, USART3_IRQn};
 
@@ -75,7 +75,7 @@ template <enum usart_device_e device> static int32_t usart_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(usart_locks[device], portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(usart_locks[device], portMAX_DELAY)) != pdPASS) {
     // errno = ???
     usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
@@ -355,9 +355,9 @@ template <enum usart_device_e device> static int32_t usart_drv_ioctl(uint64_t re
     const struct usart_setup_req_s *usart_req = reinterpret_cast<const struct usart_setup_req_s *>(buf);
 
     // Remap USART1 pins
-    // if constexpr (device == USARTDEV1) {
-    //   GPIO_PinRemapConfig(GPIO_Remap_USART1, ENABLE);
-    // }
+    if constexpr (device == USARTDEV1) {
+      GPIO_PinRemapConfig(GPIO_Remap_USART1, ENABLE);
+    }
 
     USART_InitTypeDef usart;
     usart.USART_BaudRate = usart_req->baudrate;
@@ -399,9 +399,9 @@ template <enum usart_device_e device> static int32_t usart_drv_ioctl(uint64_t re
     const struct usart_setup_req_s *usart_req = reinterpret_cast<const struct usart_setup_req_s *>(buf);
     USART_InitTypeDef usart;
 
-    // if constexpr (device == USARTDEV1) {
-    //   GPIO_PinRemapConfig(GPIO_Remap_USART1, DISABLE);
-    // }
+    if constexpr (device == USARTDEV1) {
+      GPIO_PinRemapConfig(GPIO_Remap_USART1, DISABLE);
+    }
 
     USART_Cmd(usart_devices[device], DISABLE);
     USART_DeInit(usart_devices[device]);
@@ -437,7 +437,7 @@ template <enum usart_device_e device> static int32_t usart_drv_read(void *const 
   BaseType_t rc;
 
   for (size_t nbyte = 0u; nbyte < size; nbyte++) {
-    if ((rc = xQueueReceive(usart_fifos[device], reinterpret_cast<char *const>(buf) + nbyte, portIO_MAX_DELAY)) != pdPASS) {
+    if ((rc = xQueueReceive(usart_fifos[device], reinterpret_cast<char *const>(buf) + nbyte, portMAX_DELAY)) != pdPASS) {
       usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }
@@ -462,7 +462,7 @@ template <enum usart_device_e device> static int32_t usart_drv_write(const void 
   // dma.DMA_MemoryInc = DMA_MemoryInc_Enable;
   // dma.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 
-  // if ((rc = xSemaphoreTake(USART1_dma_lock, portIO_MAX_DELAY * 20)) != pdPASS) {
+  // if ((rc = xSemaphoreTake(USART1_dma_lock, portMAX_DELAY * 20)) != pdPASS) {
   //   DMA_DeInit(DMA1_Channel4);
   //   DMA_Cmd(DMA1_Channel4, DISABLE);
   //   usart_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);goto error;

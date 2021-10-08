@@ -72,7 +72,7 @@ static int32_t GPIOA_flock() {
   }
 
   BaseType_t rc;
-  if (!(rc = xSemaphoreTakeRecursive(GPIOA_lock, portIO_MAX_DELAY))) {
+  if (!(rc = xSemaphoreTakeRecursive(GPIOA_lock, portMAX_DELAY))) {
     // errno = ???
     goto error;
   }
@@ -107,7 +107,7 @@ static int32_t GPIOB_flock() {
   }
 
   BaseType_t rc;
-  if (!(rc = xSemaphoreTakeRecursive(GPIOB_lock, portIO_MAX_DELAY))) {
+  if (!(rc = xSemaphoreTakeRecursive(GPIOB_lock, portMAX_DELAY))) {
     // errno = ???
     goto error;
   }
@@ -142,7 +142,7 @@ static int32_t GPIOC_flock() {
   }
 
   BaseType_t rc;
-  if (!(rc = xSemaphoreTakeRecursive(GPIOC_lock, portIO_MAX_DELAY))) {
+  if (!(rc = xSemaphoreTakeRecursive(GPIOC_lock, portMAX_DELAY))) {
     // errno = ???
     goto error;
   }
@@ -1095,10 +1095,10 @@ static void GPIO_EXTI_IrqHandler() {
   BaseType_t rc;
   portBASE_TYPE hp_task_woken;
   typename events_worker_s::event_s event;
-  struct gpio_event_s *gpio_event = reinterpret_cast<struct gpio_event_s *>(malloc(sizeof(struct gpio_event_s)));
-  gpio_event->pin_val = reinterpret_cast<uint8_t *>(malloc(sizeof(uint8_t) * (sizeof(gpio_ports) / sizeof(gpio_ports[0u]))));
+  struct gpio_event_s *gpio_event = reinterpret_cast<struct gpio_event_s *>(std::calloc(1u, sizeof(struct gpio_event_s)));
+  gpio_event->pin_val = reinterpret_cast<uint8_t *>(std::calloc(1u, sizeof(uint8_t) * (sizeof(gpio_ports) / sizeof(gpio_ports[0u]))));
   gpio_event->val_num = sizeof(gpio_ports) / sizeof(gpio_ports[0u]);
-
+  
   // Check all EXTI lines
   for (uint32_t line_no = 0u; line_no < sizeof(exti_lines) / sizeof(exti_lines[0u]); line_no++) {
     if (EXTI_GetITStatus(exti_lines[line_no])) {
@@ -1118,6 +1118,8 @@ static void GPIO_EXTI_IrqHandler() {
       event.handler = GPIO_EXTI_irq_callbacks[line_no];
 
       if ((rc = xQueueSendFromISR(events_worker_queue, &event, &hp_task_woken)) != pdPASS) {
+		std::free(gpio_event->pin_val);
+		std::free(gpio_event);
         return;
       }
 

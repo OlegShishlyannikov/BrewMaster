@@ -56,7 +56,7 @@ static int32_t LED0_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(LED0_lock, portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(LED0_lock, portMAX_DELAY)) != pdPASS) {
     // errno = ???
     leds_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
@@ -95,7 +95,7 @@ static int32_t LED1_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(LED1_lock, portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(LED1_lock, portMAX_DELAY)) != pdPASS) {
     // errno = ???
     leds_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
@@ -134,7 +134,7 @@ static int32_t LED2_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(LED2_lock, portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(LED2_lock, portMAX_DELAY)) != pdPASS) {
     // errno = ???
     leds_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;

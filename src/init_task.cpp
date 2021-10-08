@@ -35,7 +35,7 @@ void init_task_code(void *args) {
   }
 
   // if ((rc = init_console()) < 0) {
-  //   goto error_state;
+    // goto error_state;
   // }
 
   apps = sys.apps();
@@ -51,14 +51,8 @@ void init_task_code(void *args) {
     goto error_state;
   }
 
-  // modbus_app = sys.app("modbus");
-  // if (!(modbus_app)) {
-  // 	init_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-  //   goto error_state;
-  // }
-
   // xTaskCreate(shell_app->entry, shell_app->name, configMINIMAL_STACK_SIZE * 6u, args, 5u, &shell_task_handle);
-  xTaskCreate(bender_app->entry, bender_app->name, configMINIMAL_STACK_SIZE * 24u, args, 8u, &bender_task_handle);
+  xTaskCreate(bender_app->entry, bender_app->name, configMINIMAL_STACK_SIZE * 32u, args, 8u, &bender_task_handle);
   // xTaskCreate(modbus_app->entry, modbus_app->name, configMINIMAL_STACK_SIZE * 6u, args, 5u, &modbus_task_handle);
   
   while (true) {

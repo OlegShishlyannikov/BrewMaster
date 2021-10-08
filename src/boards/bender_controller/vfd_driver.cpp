@@ -16,6 +16,10 @@
 #include "fio/unistd.hpp"
 #include "sys/events_worker.hpp"
 
+// TODO : 9.05 -> 0
+// 0.03 -> 25.0
+// 4.00 -> 1
+
 /* This pointer will be used in interrupt handlers and will be initialized in driver init function */
 static const struct drv_model_cmn_s *drv_ptr;
 extern bool debug_log_enabled;
@@ -28,10 +32,10 @@ static constexpr const char *console_devstr = "usart1";
 static xSemaphoreHandle vfd_lock;
 extern xQueueHandle events_worker_queue;
 
-enum vfd_ctrl_reg_addr_e : uint64_t { VFD_STOP_MODE_REG_ADDR = 0x0001u, VFD_CTRL_REG_ADDR = 0x2000u, VFD_FREQ_REG_ADDR = 0x2001u, VFD_ACC_TIME_REG_ADDR = 0x2002u, VFD_DEACC_TIME_REG_ADDR = 0x2003u };
-enum vfd_ctrl_reg_cmd_e : uint64_t { VFD_CTRL_OFF_CMD = 0x01u, VFD_CTRL_RUN_CMD = 0x02u, VFD_CTRL_FWD_CMD = 0x10u, VFD_CTRL_REV_CMD = 0x20u, VFD_CTRL_CHDIR_CMD = 0x30u };
+enum vfd_ctrl_reg_addr_e : uint64_t { VFD_CTRL_REG_ADDR = 0x1000u };
+enum vfd_ctrl_reg_cmd_e : uint64_t { VFD_CTRL_RUN_FWD_CMD = 0x01u, VFD_CTRL_RUN_REV_CMD = 0x02u, VFD_CTRL_STOP_CMD = 0x05u };
 
-static constexpr const uint16_t vfd_device_id = 10u;
+static constexpr const uint16_t vfd_device_id = 1u;
 
 // Printf to console
 static int32_t vfd_printf(const char *, ...);
@@ -52,7 +56,7 @@ static int32_t vfd_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(vfd_lock, portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(vfd_lock, 0u)) != pdPASS) {
     // errno = ???
     vfd_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
@@ -111,7 +115,7 @@ void vfd_drv_init(const struct drv_model_cmn_s *drv) {
   }
 
   modbus_req.reg_addr = VFD_CTRL_REG_ADDR;
-  cmd = VFD_CTRL_OFF_CMD;
+  cmd = VFD_CTRL_STOP_CMD;
   modbus_req.data = reinterpret_cast<uint8_t *>(&cmd);
 
   if ((rc = ::ioctl(modbus, modbus_fd, modbus_ioctl_cmd_e::MODBUS_QUERY, &modbus_req, sizeof(modbus_req))) < 0) {
@@ -120,11 +124,6 @@ void vfd_drv_init(const struct drv_model_cmn_s *drv) {
       goto error;
     }
 
-    vfd_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-    goto error;
-  }
-
-  if ((rc = ::close(modbus, modbus_fd)) < 0) {
     vfd_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
@@ -173,7 +172,7 @@ void vfd_drv_exit(const struct drv_model_cmn_s *drv) {
   }
 
   modbus_req.reg_addr = VFD_CTRL_REG_ADDR;
-  cmd = VFD_CTRL_OFF_CMD;
+  cmd = VFD_CTRL_STOP_CMD;
   modbus_req.data = reinterpret_cast<uint8_t *>(&cmd);
 
   if ((rc = ::ioctl(modbus, modbus_fd, modbus_ioctl_cmd_e::MODBUS_QUERY, &modbus_req, sizeof(modbus_req))) < 0) {
@@ -245,9 +244,9 @@ static int32_t vfd_drv_ioctl(uint64_t req, const void *buf, size_t size) {
 
   switch (req) {
 
-  case vfd_ioctl_cmd_e::VFD_OFF: {
+  case vfd_ioctl_cmd_e::VFD_STOP: {
     modbus_req.reg_addr = VFD_CTRL_REG_ADDR;
-    cmd = VFD_CTRL_OFF_CMD;
+    cmd = VFD_CTRL_STOP_CMD;
     modbus_req.data = reinterpret_cast<uint8_t *>(&cmd);
 
     if ((rc = ::ioctl(modbus, modbus_fd, modbus_ioctl_cmd_e::MODBUS_QUERY, &modbus_req, sizeof(modbus_req))) < 0) {
@@ -261,9 +260,9 @@ static int32_t vfd_drv_ioctl(uint64_t req, const void *buf, size_t size) {
     }
   } break;
 
-  case vfd_ioctl_cmd_e::VFD_RUN: {
+  case vfd_ioctl_cmd_e::VFD_RUN_FWD: {
     modbus_req.reg_addr = VFD_CTRL_REG_ADDR;
-    cmd = VFD_CTRL_RUN_CMD;
+    cmd = VFD_CTRL_RUN_FWD_CMD;
     modbus_req.data = reinterpret_cast<uint8_t *>(&cmd);
 
     if ((rc = ::ioctl(modbus, modbus_fd, modbus_ioctl_cmd_e::MODBUS_QUERY, &modbus_req, sizeof(modbus_req))) < 0) {
@@ -277,9 +276,9 @@ static int32_t vfd_drv_ioctl(uint64_t req, const void *buf, size_t size) {
     }
   } break;
 
-  case vfd_ioctl_cmd_e::VFD_CHANGE_DIR: {
+  case vfd_ioctl_cmd_e::VFD_RUN_REV: {
     modbus_req.reg_addr = VFD_CTRL_REG_ADDR;
-    cmd = VFD_CTRL_CHDIR_CMD;
+    cmd = VFD_CTRL_RUN_REV_CMD;
     modbus_req.data = reinterpret_cast<uint8_t *>(&cmd);
 
     if ((rc = ::ioctl(modbus, modbus_fd, modbus_ioctl_cmd_e::MODBUS_QUERY, &modbus_req, sizeof(modbus_req))) < 0) {
@@ -292,103 +291,6 @@ static int32_t vfd_drv_ioctl(uint64_t req, const void *buf, size_t size) {
       goto error;
     }
   } break;
-
-  case vfd_ioctl_cmd_e::VFD_SET_ACCELERATION_TIME: {
-    modbus_req.reg_addr = VFD_ACC_TIME_REG_ADDR;
-    cmd = *reinterpret_cast<const uint16_t *>(buf);
-    modbus_req.data = reinterpret_cast<uint8_t *>(&cmd);
-
-    if ((rc = ::ioctl(modbus, modbus_fd, modbus_ioctl_cmd_e::MODBUS_QUERY, &modbus_req, sizeof(modbus_req))) < 0) {
-      if ((rc = ::close(modbus, modbus_fd)) < 0) {
-        vfd_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-        goto error;
-      }
-
-      vfd_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-  } break;
-
-  case vfd_ioctl_cmd_e::VFD_SET_DEACCELERATION_TIME: {
-    modbus_req.reg_addr = VFD_DEACC_TIME_REG_ADDR;
-    cmd = *reinterpret_cast<const uint16_t *>(buf);
-    modbus_req.data = reinterpret_cast<uint8_t *>(&cmd);
-
-    if ((rc = ::ioctl(modbus, modbus_fd, modbus_ioctl_cmd_e::MODBUS_QUERY, &modbus_req, sizeof(modbus_req))) < 0) {
-      if ((rc = ::close(modbus, modbus_fd)) < 0) {
-        vfd_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-        goto error;
-      }
-
-      vfd_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-  } break;
-
-  case vfd_ioctl_cmd_e::VFD_SET_FREQ: {
-    modbus_req.reg_addr = VFD_FREQ_REG_ADDR;
-    cmd = *reinterpret_cast<const uint16_t *>(buf);
-    modbus_req.data = reinterpret_cast<uint8_t *>(&cmd);
-
-    if ((rc = ::ioctl(modbus, modbus_fd, modbus_ioctl_cmd_e::MODBUS_QUERY, &modbus_req, sizeof(modbus_req))) < 0) {
-      if ((rc = ::close(modbus, modbus_fd)) < 0) {
-        vfd_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-        goto error;
-      }
-
-      vfd_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-  } break;
-
-  case vfd_ioctl_cmd_e::VFD_SET_FWD: {
-    modbus_req.reg_addr = VFD_CTRL_REG_ADDR;
-    cmd = VFD_CTRL_FWD_CMD;
-    modbus_req.data = reinterpret_cast<uint8_t *>(&cmd);
-
-    if ((rc = ::ioctl(modbus, modbus_fd, modbus_ioctl_cmd_e::MODBUS_QUERY, &modbus_req, sizeof(modbus_req))) < 0) {
-      if ((rc = ::close(modbus, modbus_fd)) < 0) {
-        vfd_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-        goto error;
-      }
-
-      vfd_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-  } break;
-
-  case vfd_ioctl_cmd_e::VFD_SET_REV: {
-    modbus_req.reg_addr = VFD_CTRL_REG_ADDR;
-    cmd = VFD_CTRL_REV_CMD;
-    modbus_req.data = reinterpret_cast<uint8_t *>(&cmd);
-
-    if ((rc = ::ioctl(modbus, modbus_fd, modbus_ioctl_cmd_e::MODBUS_QUERY, &modbus_req, sizeof(modbus_req))) < 0) {
-      if ((rc = ::close(modbus, modbus_fd)) < 0) {
-        vfd_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-        goto error;
-      }
-
-      vfd_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-  } break;
-
-  case vfd_ioctl_cmd_e::VFD_SET_STOP_MODE: {
-    modbus_req.reg_addr = VFD_STOP_MODE_REG_ADDR;
-    cmd = *reinterpret_cast<const enum vfd_stop_mode_e *>(buf);
-    modbus_req.data = reinterpret_cast<uint8_t *>(&cmd);
-
-    if ((rc = ::ioctl(modbus, modbus_fd, modbus_ioctl_cmd_e::MODBUS_QUERY, &modbus_req, sizeof(modbus_req))) < 0) {
-      if ((rc = ::close(modbus, modbus_fd)) < 0) {
-        vfd_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-        goto error;
-      }
-
-      vfd_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-  } break;
-
   default:
     break;
   }

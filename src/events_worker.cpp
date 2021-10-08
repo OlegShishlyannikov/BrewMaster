@@ -8,7 +8,7 @@
 extern xQueueHandle events_worker_queue;
 
 void events_worker_s::init() const {
-  events_worker_queue = xQueueCreate(64u, sizeof(struct events_worker_s::event_s));
+  events_worker_queue = xQueueCreate(128u, sizeof(struct events_worker_s::event_s));
 }
 
 void events_worker_s::handle_event(const struct events_worker_s::event_s *event) const {
@@ -17,6 +17,6 @@ void events_worker_s::handle_event(const struct events_worker_s::event_s *event)
   }
 
   if (event->data) {
-    free(event->data);
+	std::free(event->data);
   }
 }

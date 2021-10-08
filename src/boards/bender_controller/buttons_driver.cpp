@@ -68,7 +68,7 @@ static int32_t BUTTON0_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(BUTTON0_lock, portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(BUTTON0_lock, portMAX_DELAY)) != pdPASS) {
     // errno = ???
     goto error;
   }
@@ -103,7 +103,7 @@ static int32_t BUTTON1_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(BUTTON0_lock, portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(BUTTON0_lock, portMAX_DELAY)) != pdPASS) {
     // errno = ???
     goto error;
   }
@@ -138,7 +138,7 @@ static int32_t BUTTON2_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(BUTTON0_lock, portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(BUTTON0_lock, portMAX_DELAY)) != pdPASS) {
     // errno = ???
     goto error;
   }
@@ -857,7 +857,7 @@ template <uint32_t BtnN> static void btn_callback(const void *data, size_t size)
   };
 
   // Free pin values vector
-  free(gpio_event->pin_val);
+  std::free(gpio_event->pin_val);
 
   // Call callback function
   if (btn_callback_nested[BtnN]) {

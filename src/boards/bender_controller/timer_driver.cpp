@@ -45,7 +45,7 @@ static int32_t TIM1_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(TIM1_lock, portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(TIM1_lock, portMAX_DELAY)) != pdPASS) {
     // errno = ???
     timer_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;

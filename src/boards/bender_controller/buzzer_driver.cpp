@@ -40,7 +40,7 @@ static int32_t buzzer_flock() {
   }
 
   BaseType_t rc;
-  if (!(rc = xSemaphoreTakeRecursive(buzzer_lock, portIO_MAX_DELAY))) {
+  if (!(rc = xSemaphoreTakeRecursive(buzzer_lock, portMAX_DELAY))) {
     // errno = ???
     goto error;
   }

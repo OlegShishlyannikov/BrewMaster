@@ -52,7 +52,7 @@ static int32_t rtc_flock() {
   }
 
   BaseType_t rc;
-  if (!(rc = xSemaphoreTakeRecursive(rtc_lock, portIO_MAX_DELAY))) {
+  if (!(rc = xSemaphoreTakeRecursive(rtc_lock, portMAX_DELAY))) {
     // errno = ???
     goto error;
   }

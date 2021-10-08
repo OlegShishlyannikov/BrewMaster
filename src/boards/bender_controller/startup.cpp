@@ -1,4 +1,5 @@
 #include "arch/mcu_tags.hpp"
+#include <cstdlib>
 
 /* RAM isr table */
 void __attribute__((used, section(".data"))) (*volatile g_pfnVectorsRam[ISR_MAX_NUM])(void){0x0u};
@@ -127,6 +128,14 @@ void __attribute__((used, section(".isr_vector"))) (*volatile const g_pfnVectors
     0,
     0,
     reinterpret_cast<void (*)(void)>(0xF1E0F85F)};
+
+/* Provide default implemenation for __cxa_guard_acquire() and
+ * __cxa_guard_release(). Note: these must be revisited if a multitasking
+ * OS is ported to this platform. */
+extern "C" __extension__ typedef int __guard __attribute__((mode(__DI__)));
+extern "C" int __cxa_guard_acquire(__guard *g) { return !*(char *)(g); };
+extern "C" void __cxa_guard_release(__guard *g) { *(char *)g = 1; };
+extern "C" void __cxa_guard_abort(__guard *){};
 
 void panic(context_state_frame_s *frame) {
   frame->bfar = SCB->HFSR;

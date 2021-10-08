@@ -7,4 +7,4 @@
 -D${MCU_DEVICE}
 -DHSE_VALUE=${HSE_VALUE}
 -D${PROJECT_NAME_CAP}_APP
--std=gnu++20
+--std=gnu++20

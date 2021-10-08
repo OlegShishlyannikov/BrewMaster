@@ -56,7 +56,7 @@ static int32_t modbus_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(modbus_lock, portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(modbus_lock, portMAX_DELAY)) != pdPASS) {
     // errno = ???
     modbus_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
@@ -100,7 +100,7 @@ void modbus_drv_init(const struct drv_model_cmn_s *drv) {
   int32_t usart_fd, rc;
 
   struct usart_setup_req_s usart_setup_req {
-    .baudrate = 19200u, .irq_priority = 5u, .hw_flow_ctrl = usart_hw_flow_ctrl_e::NONE, .mode = usart_mode_e::RXTX, .parity = usart_parity_e::NO, .sb = usart_stop_bits_e::SB_1,
+    .baudrate = 9600u, .irq_priority = 5u, .hw_flow_ctrl = usart_hw_flow_ctrl_e::NONE, .mode = usart_mode_e::RXTX, .parity = usart_parity_e::NO, .sb = usart_stop_bits_e::SB_1,
     .wl = usart_word_len_e::WL_8B
   };
 

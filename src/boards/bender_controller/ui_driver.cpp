@@ -116,7 +116,7 @@ static int32_t ui_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(ui_lock, portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(ui_lock, portMAX_DELAY)) != pdPASS) {
     // errno = ???
     ui_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;

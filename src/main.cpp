@@ -66,23 +66,23 @@ bool debug_log_enabled = false;
 #if defined(BREWERY_CONTROLLER_APP)
 
 /* Init & get references to modules */
-auto &rcc = make_drv<struct rcc_drv_name_s>(&rcc_drv_ops);
-auto &gpio = make_drv<1u, struct gpio_drv_name_s>(&gpio_drv_ops, {&rcc});
-auto &usart = make_drv<2u, struct usart_drv_name_s>(&usart_drv_ops, {&rcc, &gpio});
-auto &rtc = make_drv<2u, struct rtc_drv_name_s>(&rtc_drv_ops, {&rcc, &usart});
-auto &buzzer = make_drv<3u, struct buzzer_drv_name_s>(&buzzer_drv_ops, {&rcc, &gpio, &usart});
-auto &tim = make_drv<3u, struct timer_drv_name_s>(&timer_drv_ops, {&rcc, &gpio, &usart});
-auto &spi = make_drv<3u, struct spi_drv_name_s>(&spi_drv_ops, {&rcc, &gpio, &usart});
-auto &ac_load = make_drv<2u, struct ac_load_drv_name_s>(&ac_load_drv_ops, {&gpio, &usart});
-auto &relay_load = make_drv<2u, struct relay_load_drv_name_s>(&relay_load_drv_ops, {&gpio, &usart});
-auto &leds = make_drv<2u, struct leds_drv_name_s>(&leds_drv_ops, {&gpio, &usart});
-auto &hd44780 = make_drv<2u, struct hd44780_drv_name_s>(&hd44780_drv_ops, {&gpio, &usart});
-auto &w25qxx = make_drv<3u, struct w25qxx_drv_name_s>(&w25qxx_drv_ops, {&gpio, &spi, &usart});
-auto &ads1118 = make_drv<3u, struct ads1118_drv_name_s>(&ads1118_drv_ops, {&gpio, &spi, &usart});
-auto &buttons = make_drv<3u, struct button_drv_name_s>(&button_drv_ops, {&gpio, &usart, &uln2003});
+static auto &rcc = make_drv<struct rcc_drv_name_s>(&rcc_drv_ops);
+static auto &gpio = make_drv<1u, struct gpio_drv_name_s>(&gpio_drv_ops, {&rcc});
+static auto &usart = make_drv<2u, struct usart_drv_name_s>(&usart_drv_ops, {&rcc, &gpio});
+static auto &rtc = make_drv<2u, struct rtc_drv_name_s>(&rtc_drv_ops, {&rcc, &usart});
+static auto &buzzer = make_drv<3u, struct buzzer_drv_name_s>(&buzzer_drv_ops, {&rcc, &gpio, &usart});
+static auto &tim = make_drv<3u, struct timer_drv_name_s>(&timer_drv_ops, {&rcc, &gpio, &usart});
+static auto &spi = make_drv<3u, struct spi_drv_name_s>(&spi_drv_ops, {&rcc, &gpio, &usart});
+static auto &ac_load = make_drv<2u, struct ac_load_drv_name_s>(&ac_load_drv_ops, {&gpio, &usart});
+static auto &relay_load = make_drv<2u, struct relay_load_drv_name_s>(&relay_load_drv_ops, {&gpio, &usart});
+static auto &leds = make_drv<2u, struct leds_drv_name_s>(&leds_drv_ops, {&gpio, &usart});
+static auto &hd44780 = make_drv<2u, struct hd44780_drv_name_s>(&hd44780_drv_ops, {&gpio, &usart});
+static auto &w25qxx = make_drv<3u, struct w25qxx_drv_name_s>(&w25qxx_drv_ops, {&gpio, &spi, &usart});
+static auto &ads1118 = make_drv<3u, struct ads1118_drv_name_s>(&ads1118_drv_ops, {&gpio, &spi, &usart});
+static auto &buttons = make_drv<3u, struct button_drv_name_s>(&button_drv_ops, {&gpio, &usart, &uln2003});
 
 // Module array
-const struct drv_model_cmn_s *modules[]{&rcc, &gpio, &usart, &rtc, &buzzer, &tim, &spi, &ac_load, &relay_load, &leds, &hd44780, &w25qxx, &ads1118};
+static const struct drv_model_cmn_s *modules[]{&rcc, &gpio, &usart, &rtc, &buzzer, &tim, &spi, &ac_load, &relay_load, &leds, &hd44780, &w25qxx, &ads1118};
 
 // Applications
 static struct app_s shell_app = {.name = "shell", .entry = shell_app_s::entry};
@@ -90,7 +90,7 @@ static struct app_s clear_app = {.name = "clear", .entry = clear_app_s::entry};
 static struct app_s cowsay_app = {.name = "cowsay", .entry = cowsay_app_s::entry};
 static struct app_s debug_app = {.name = "debug", .entry = debug_app_s::entry};
 static struct app_s reboot_app = {.name = "reboot", .entry = reboot_app_s::entry};
-static struct app_s bender_app = {.name = "brewery", .entry = bender_app_s::entry};
+static struct app_s bender_app = {.name = "bender", .entry = bender_app_s::entry};
 
 // Application array
 const struct app_s *apps[]{&shell_app, &clear_app, &cowsay_app, &debug_app, &reboot_app, &bender_app};
@@ -98,25 +98,25 @@ const struct app_s *apps[]{&shell_app, &clear_app, &cowsay_app, &debug_app, &reb
 #elif defined(BENDER_CONTROLLER_APP)
 
 /* Init & get references to modules */
-auto &rcc = make_drv<struct rcc_drv_name_s>(&rcc_drv_ops);
-auto &gpio = make_drv<1u, struct gpio_drv_name_s>(&gpio_drv_ops, {&rcc});
-auto &usart = make_drv<2u, struct usart_drv_name_s>(&usart_drv_ops, {&rcc, &gpio});
-auto &modbus = make_drv<1u, struct modbus_drv_name_s>(&modbus_drv_ops, {&usart});
-auto &vfd = make_drv<1u, struct vfd_drv_name_s>(&vfd_drv_ops, {&modbus});
-auto &rtc = make_drv<2u, struct rtc_drv_name_s>(&rtc_drv_ops, {&rcc, &usart});
-auto &buzzer = make_drv<3u, struct buzzer_drv_name_s>(&buzzer_drv_ops, {&rcc, &gpio, &usart});
-auto &tim = make_drv<3u, struct timer_drv_name_s>(&timer_drv_ops, {&rcc, &gpio, &usart});
-auto &spi = make_drv<3u, struct spi_drv_name_s>(&spi_drv_ops, {&rcc, &gpio, &usart});
-auto &relay_load = make_drv<2u, struct relay_load_drv_name_s>(&relay_load_drv_ops, {&gpio, &usart});
-auto &leds = make_drv<2u, struct leds_drv_name_s>(&leds_drv_ops, {&gpio, &usart});
-auto &uln2003 = make_drv<3u, struct uln2003_drv_name_s>(&uln2003_drv_ops, {&gpio, &usart, &tim});
-// auto &ic74hc595 = make_drv<3u, struct ic74hc595_drv_name_s>(&ic74hc595_drv_ops, {&gpio, &usart, &spi});
-// auto &zsp3806g2e = make_drv<3u, struct zsp3806g2e_drv_name_s>(&zsp3806g2e_drv_ops, {&gpio, &usart, &spi});
-// auto &ui = make_drv<7u, struct ui_drv_name_s>(&ui_drv_ops, {&gpio, &usart, &ic74hc595, &uln2003, &tim, &buzzer, &zsp3806g2e});
+static auto &rcc = make_drv<struct rcc_drv_name_s>(&rcc_drv_ops);
+static auto &gpio = make_drv<1u, struct gpio_drv_name_s>(&gpio_drv_ops, {&rcc});
+static auto &usart = make_drv<2u, struct usart_drv_name_s>(&usart_drv_ops, {&rcc, &gpio});
+static auto &modbus = make_drv<1u, struct modbus_drv_name_s>(&modbus_drv_ops, {&usart});
+static auto &vfd = make_drv<1u, struct vfd_drv_name_s>(&vfd_drv_ops, {&modbus});
+static auto &rtc = make_drv<2u, struct rtc_drv_name_s>(&rtc_drv_ops, {&rcc, &usart});
+static auto &buzzer = make_drv<3u, struct buzzer_drv_name_s>(&buzzer_drv_ops, {&rcc, &gpio, &usart});
+static auto &tim = make_drv<3u, struct timer_drv_name_s>(&timer_drv_ops, {&rcc, &gpio, &usart});
+static auto &spi = make_drv<3u, struct spi_drv_name_s>(&spi_drv_ops, {&rcc, &gpio, &usart});
+static auto &relay_load = make_drv<2u, struct relay_load_drv_name_s>(&relay_load_drv_ops, {&gpio, &usart});
+static auto &leds = make_drv<2u, struct leds_drv_name_s>(&leds_drv_ops, {&gpio, &usart});
+static auto &uln2003 = make_drv<3u, struct uln2003_drv_name_s>(&uln2003_drv_ops, {&gpio, &usart, &tim});
+static auto &ic74hc595 = make_drv<3u, struct ic74hc595_drv_name_s>(&ic74hc595_drv_ops, {&gpio, &usart, &spi});
+static auto &zsp3806g2e = make_drv<3u, struct zsp3806g2e_drv_name_s>(&zsp3806g2e_drv_ops, {&gpio, &usart, &spi});
+static auto &ui = make_drv<7u, struct ui_drv_name_s>(&ui_drv_ops, {&gpio, &usart, &ic74hc595, &uln2003, &tim, &buzzer, &zsp3806g2e});
 
 // Module array
-const struct drv_model_cmn_s *modules[] = {&rcc, &gpio, &usart, &rtc, &buzzer, &tim, &spi, &relay_load, &leds,
-                                           // &ic74hc595, &uln2003, &zsp3806g2e, &ui,
+static const struct drv_model_cmn_s *modules[] = {&rcc, &gpio, &usart, &rtc, &buzzer, &tim, &spi, &relay_load, &leds,
+                                           &ic74hc595, &uln2003, &zsp3806g2e, &ui,
                                            &modbus, &vfd};
 
 // Applications
@@ -126,13 +126,14 @@ static struct app_s cowsay_app = {.name = "cowsay", .entry = cowsay_app_s::entry
 static struct app_s debug_app = {.name = "debug", .entry = debug_app_s::entry};
 static struct app_s reboot_app = {.name = "reboot", .entry = reboot_app_s::entry};
 static struct app_s modbus_test_app = {.name = "modbus", .entry = modbus_app_s::entry};
-// static struct app_s bender_app = {.name = "bender", .entry = bender_app_s::entry};
+static struct app_s bender_app = {.name = "bender", .entry = bender_app_s::entry};
 
 // Application array
 const struct app_s *apps[]{
     // &shell_app,
-    &clear_app, &cowsay_app, &debug_app, &reboot_app, &modbus_test_app,
-    // &bender_app
+    &clear_app, &cowsay_app, &debug_app, &reboot_app,
+	  &modbus_test_app,
+    &bender_app
 };
 
 #endif
@@ -142,7 +143,7 @@ auto &sys = make_system(modules, sizeof(modules) / sizeof(modules[0u]), apps, si
 const char *shell_cmdline_args = "nothing here!";
 
 void init() {
-
+  
   // Events worker
   static auto &ew = make_ew();
   static xTaskHandle init_task_handle, events_worker_task_handle;

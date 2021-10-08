@@ -47,7 +47,7 @@ static int32_t uln2003_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(uln2003_lock, portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(uln2003_lock, portMAX_DELAY)) != pdPASS) {
     // errno = ???
     uln2003_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;

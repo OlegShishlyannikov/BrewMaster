@@ -47,7 +47,7 @@ static int32_t zsp3806g2e_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(zsp3806g2e_lock, portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(zsp3806g2e_lock, portMAX_DELAY)) != pdPASS) {
     // errno = ???
     zsp3806g2e_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;

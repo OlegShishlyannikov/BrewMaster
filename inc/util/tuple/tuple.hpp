@@ -5,11 +5,12 @@
 #include <stdexcept>
 #include <tuple>
 #include <variant>
+#include <type_traits>
 
 namespace std {
 namespace {
 template <int32_t Low, int32_t High, int32_t Mid = (Low + High) / 2, typename = void> struct visit_at_;
-template <int32_t Low, int32_t High, int32_t Mid> struct visit_at_<Low, High, Mid, std::enable_if_t<(Low > High)>> {
+  template <int32_t Low, int32_t High, int32_t Mid> struct visit_at_<Low, High, Mid, std::enable_if_t<(Low > High)>> {
   template <typename... T> static decltype(auto) apply_(int32_t, T &&...) { throw std::out_of_range("visit_at"); }
 };
 
@@ -22,7 +23,7 @@ template <int32_t Mid> struct visit_at_<Mid, Mid, Mid> {
 };
 
 template <int32_t Low, int32_t High, int32_t Mid> struct visit_at_<Low, High, Mid, std::enable_if_t<(Low < High)>> {
-  template <typename... T> static decltype(auto) apply_(int n, T &&... t) {
+  template <typename... T> static decltype(auto) apply_(int32_t n, T &&... t) {
     if (n < Mid) {
       return visit_at_<Low, Mid - 1>::apply_(n, std::forward<T>(t)...);
     } else if (n == Mid) {

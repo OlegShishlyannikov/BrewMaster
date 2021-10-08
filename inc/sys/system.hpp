@@ -15,6 +15,8 @@
 #include <sys/types.h>
 #include <type_traits>
 
+static void fail();
+
 // Application descritor structure
 struct app_s {
   const char *name;
@@ -94,44 +96,38 @@ struct sys_impl_s {
   const struct file_s *vfs_get_file(const char *path) const {
     const struct file_s *file;
     const struct drv_model_cmn_s *driver;
-    char *path_buffer, *name;
-    size_t path_len = std::strlen(path);
+    char *path_buffer, *driver_name, *file_name;
 
-    path_buffer = reinterpret_cast<char *>(malloc(path_len + 1u));
-    std::strncpy(path_buffer, path, path_len);
-    path_buffer[path_len] = '\0';
-    name = std::strtok(path_buffer, "/");
+    path_buffer = reinterpret_cast<char *>(std::calloc(std::strlen(path) + 1u, sizeof(char)));
+    std::strcpy(path_buffer, path);
 
-    while (name != nullptr) {
-      /* Find in drivers first */
-      if ((driver = drv(name))) {
-        /* Driver found */
-        name = std::strtok(nullptr, "/");
+    driver_name = std::strtok(path_buffer, "/");
+    file_name = std::strtok(nullptr, "/");
 
-        /* Find in registered devices */
-        if (name) {
-          file = driver->file_tree().find_file(name);
-
-          /* File found */
-          if (file) {
-            goto success;
-          }
-
+    /* Find in drivers first */
+    if ((driver = drv(driver_name))) {
+      /* Driver found */
+      /* Find in registered devices */
+      if (file_name) {
+        if ((file = driver->file_tree().find_file(file_name))) {
+          goto success;
+        } else {
           goto fail;
         }
-
+      } else {
         goto fail;
       }
-
-      name = std::strtok(nullptr, "/");
+    } else {
+      goto fail;
     }
 
   success:
-    free(path_buffer);
+    std::free(path_buffer);
     return file;
 
   fail:
-    free(path_buffer);
+    fail();
+    std::free(path_buffer);
     return nullptr;
   }
 
@@ -153,4 +149,5 @@ static struct sys_impl_s &make_system(const struct drv_model_cmn_s **const drvs,
   return *inst;
 }
 
+static void fail() { asm("nop"); }
 #endif /* SYSTEM_HPP */

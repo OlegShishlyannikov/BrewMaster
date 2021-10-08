@@ -13,29 +13,25 @@ set(CMAKE_SYSTEM_NAME "Generic" CACHE INTERNAL "CMake system name")
 set(CMAKE_SYSTEM_PROCESSOR "ARM-cortex-m3" CACHE INTERNAL "CMake processor")
 set(CMAKE_VERBOSE_MAKEFILE OFF CACHE INTERNAL "CMake verbose makefile")
 
-set(CMAKE_ASM_COMPILER "/usr/bin/arm-none-eabi-as" CACHE INTERNAL "CMake asm compiler")
-set(CMAKE_C_COMPILER "/usr/bin/arm-none-eabi-gcc" CACHE INTERNAL "CMake c compiler")
-set(CMAKE_CXX_COMPILER "/usr/bin/arm-none-eabi-g++" CACHE INTERNAL "CMake cxx compiler")
-set(CMAKE_OBJCOPY_UTIL "/usr/bin/arm-none-eabi-objcopy" CACHE INTERNAL "CMake objcopy util")
-set(CMAKE_OBJDUMP_UTIL "/usr/bin/arm-none-eabi-objdump" CACHE INTERNAL "CMake objdump util")
-set(CMAKE_SIZE_UTIL "/usr/bin/arm-none-eabi-size" CACHE INTERNAL "CMake size util")
-set(STLINK_INFO_UTIL "/usr/local/bin/st-info" CACHE INTERNAL "Stlink info util")
-set(STLINK_FLASH_UTIL "/usr/local/bin/st-flash" CACHE INTERNAL "Stlink flash util")
-set(CMAKE_GDB_BACKEND "/usr/bin/arm-none-eabi-gdb" CACHE INTERNAL "CMake gdb backend")
-set(CMAKE_GDB_SERVER "/usr/local/bin/st-util" CACHE INTERNAL "CMake gdb server")
-set(CMAKE_GDB_FRONTEND "/usr/bin/cgdb" CACHE INTERNAL "CMake gdb frontend")
+set(CMAKE_ASM_COMPILER "/home/user/CrossCompile/gcc-arm-10.3-2021.07-x86_64-arm-none-eabi/bin/arm-none-eabi-as" CACHE INTERNAL "CMake asm compiler")
+set(CMAKE_C_COMPILER "/home/user/CrossCompile/gcc-arm-10.3-2021.07-x86_64-arm-none-eabi/bin/arm-none-eabi-gcc" CACHE INTERNAL "CMake c compiler")
+set(CMAKE_CXX_COMPILER "/home/user/CrossCompile/gcc-arm-10.3-2021.07-x86_64-arm-none-eabi/bin/arm-none-eabi-g++" CACHE INTERNAL "CMake cxx compiler")
+set(CMAKE_OBJCOPY_UTIL "/home/user/CrossCompile/gcc-arm-10.3-2021.07-x86_64-arm-none-eabi/bin/arm-none-eabi-objcopy" CACHE INTERNAL "CMake objcopy util")
+set(CMAKE_OBJDUMP_UTIL "/home/user/CrossCompile/gcc-arm-10.3-2021.07-x86_64-arm-none-eabi/bin/arm-none-eabi-objdump" CACHE INTERNAL "CMake objdump util")
+set(CMAKE_SIZE_UTIL "/home/user/CrossCompile/gcc-arm-10.3-2021.07-x86_64-arm-none-eabi/bin/arm-none-eabi-size" CACHE INTERNAL "CMake size util")
 
 message("CMake ASM compiler is ${CMAKE_ASM_COMPILER}")
 message("CMake C compiler is ${CMAKE_C_COMPILER}")
 message("CMake CXX compiler is ${CMAKE_CXX_COMPILER}")
 
+set(C_SYSTEM_HEADERS_PATH "/home/user/CrossCompile/gcc-arm-10.3-2021.07-x86_64-arm-none-eabi/arm-none-eabi/include/")
+set(CXX_SYSTEM_HEADERS_PATH "/home/user/CrossCompile/gcc-arm-10.3-2021.07-x86_64-arm-none-eabi/arm-none-eabi/include/c++/10.3.1/")
+set(LD_LIBRARY_PATH "/usr/arm-none-eabi/lib")
+
 set(CMAKE_ASM_FLAGS "-mthumb -mcpu=cortex-m3 -D${PROJECT_NAME_CAP}_APP" CACHE INTERNAL "CMake asm flags")
 set(CMAKE_C_FLAGS "-O0 -g -pipe -mthumb -mcpu=cortex-m3 -std=gnu11 -ffunction-sections -fomit-frame-pointer -fdata-sections -fno-builtin -Wl,--gc-sections -D${PROJECT_NAME_CAP}_APP" CACHE INTERNAL "CMake c flags")
-set(CMAKE_CXX_FLAGS "-O0 -g -pipe -mthumb -mcpu=cortex-m3 -std=gnu++20 -flto -ffunction-sections -fomit-frame-pointer -fdata-sections -fno-builtin -fexceptions -Wl,--gc-sections -fconcepts-diagnostics-depth=4 -D${PROJECT_NAME_CAP}_APP" CACHE INTERNAL "CMake cxx flags")
-set(CMAKE_EXE_LINKER_FLAGS "-O0 -g -pipe -mthumb -mcpu=cortex-m3 -flto -ffunction-sections -fomit-frame-pointer -fdata-sections -fno-builtin -fexceptions -Wl,--gc-sections -Wl,--no-wchar-size-warning --specs=nano.specs --specs=nosys.specs -lc -lnosys -Wl,-Map,${CMAKE_PROJECT_NAME}.map  -u _printf_float -u _scanf_float -D${PROJECT_NAME_CAP}_APP" CACHE INTERNAL "CMake exe linker flags")
-
-set(C_SYSTEM_HEADERS_PATH "/usr/arm-none-eabi/include/")
-set(CXX_SYSTEM_HEADERS_PATH "/usr/arm-none-eabi/include/c++/10.2.0/")
+set(CMAKE_CXX_FLAGS "-O0 -g -pipe -mthumb -mcpu=cortex-m3 -std=gnu++20 -flto -ffunction-sections -fomit-frame-pointer -fdata-sections -fno-builtin -Wl,--gc-sections -fconcepts-diagnostics-depth=4 -D${PROJECT_NAME_CAP}_APP" CACHE INTERNAL "CMake cxx flags")
+set(CMAKE_EXE_LINKER_FLAGS "-O0 -g -pipe -mthumb -mcpu=cortex-m3 -flto -ffunction-sections -fomit-frame-pointer -fdata-sections -fno-builtin -Wl,--gc-sections -Wl,--no-wchar-size-warning --specs=nosys.specs -Wl,-Map,${CMAKE_PROJECT_NAME}.map -u _printf_float -u _scanf_float -D${PROJECT_NAME_CAP}_APP" CACHE INTERNAL "CMake exe linker flags")
 
 set(LINKER_SCRIPT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ldscripts)
 set(LDMEM_SCRIPT ${LINKER_SCRIPT_DIR}/mem.ld)
@@ -164,7 +160,11 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D${MCU_DEVICE} -DHSE_VALUE=${HSE_VALUE} -DU
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D${MCU_DEVICE} -DHSE_VALUE=${HSE_VALUE} -DUSE_STDPERIPH_DRIVER" CACHE INTERNAL "CMake cxx flags")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -D${MCU_DEVICE} -DHSE_VALUE=${HSE_VALUE} -DUSE_STDPERIPH_DRIVER -T${LDMEM_SCRIPT} -T${LDLIB_SCRIPT} -T${LDSECTIONS_SCRIPT}" CACHE INTERNAL "CMake exe linker flags")
 
-include_directories(${PROJECT_INC_DIR} ${STARTUP_INC_DIR} ${CMSIS_INC_DIR} ${SPL_INC_DIR} ${RTOS_INC_DIR})
+include_directories(${PROJECT_INC_DIR} ${STARTUP_INC_DIR} ${CMSIS_INC_DIR} ${SPL_INC_DIR} ${RTOS_INC_DIR}
+  ${C_SYSTEM_HEADERS_PATH}
+  ${CXX_SYSTEM_HEADERS_PATH}
+  )
+
 add_executable(${CMAKE_PROJECT_NAME}.elf
   ${PROJECT_SOURCES}
   ${PROJECT_BOARD_SOURCES}
@@ -195,7 +195,3 @@ add_custom_command(TARGET ${CMAKE_PROJECT_NAME}.elf POST_BUILD COMMAND ${CMAKE_O
 add_custom_command(TARGET ${CMAKE_PROJECT_NAME}.elf POST_BUILD COMMAND ${CMAKE_OBJCOPY_UTIL} ARGS -Obinary ${CMAKE_PROJECT_NAME}.elf ${CMAKE_PROJECT_NAME}.bin)
 add_custom_command(TARGET ${CMAKE_PROJECT_NAME}.elf POST_BUILD COMMAND ${CMAKE_SIZE_UTIL} ${CMAKE_PROJECT_NAME}.elf)
 add_custom_command(TARGET ${CMAKE_PROJECT_NAME}.elf POST_BUILD COMMAND ${CMAKE_SIZE_UTIL} ${CMAKE_PROJECT_NAME}.hex)
-
-add_custom_target(flash COMMAND ${STLINK_FLASH_UTIL} write ${CMAKE_PROJECT_NAME}.bin 0x08000000)
-add_custom_target(dump COMMAND ${CMAKE_OBJDUMP_UTIL} -t ${CMAKE_PROJECT_NAME}.elf)
-add_custom_target(size COMMAND ${CMAKE_SIZE_UTIL} ${CMAKE_PROJECT_NAME}.elf)

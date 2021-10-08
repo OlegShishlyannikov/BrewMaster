@@ -86,7 +86,7 @@ static int32_t SPI1_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(SPI_locks[0u], portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(SPI_locks[0u], portMAX_DELAY)) != pdPASS) {
     // errno = ???
     spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
@@ -125,7 +125,7 @@ static int32_t SPI3_flock() {
   }
 
   BaseType_t rc;
-  if (!(rc = xSemaphoreTakeRecursive(SPI_locks[2u], portIO_MAX_DELAY))) {
+  if (!(rc = xSemaphoreTakeRecursive(SPI_locks[2u], portMAX_DELAY))) {
     // errno = ???
     spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
@@ -672,7 +672,7 @@ static int32_t spi_drv_SPI1_read(void *const buf, size_t size) {
   if (size % sizeof(uint16_t)) {
     uint16_t from_queue[size / sizeof(uint16_t) + 1u];
     for (size_t n = 0u; n < sizeof(from_queue) / sizeof(uint16_t); n++) {
-      if ((rc = xQueueReceive(SPI_fifos[0u], &from_queue[n], portIO_MAX_DELAY)) != pdPASS) {
+      if ((rc = xQueueReceive(SPI_fifos[0u], &from_queue[n], portMAX_DELAY)) != pdPASS) {
         spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
         goto error;
       }
@@ -681,7 +681,7 @@ static int32_t spi_drv_SPI1_read(void *const buf, size_t size) {
     }
   } else {
     for (size_t n = 0u; n < size / sizeof(uint16_t); n++) {
-      if ((rc = xQueueReceive(SPI_fifos[0u], reinterpret_cast<uint16_t *const>(buf) + n, portIO_MAX_DELAY)) != pdPASS) {
+      if ((rc = xQueueReceive(SPI_fifos[0u], reinterpret_cast<uint16_t *const>(buf) + n, portMAX_DELAY)) != pdPASS) {
         spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
         goto error;
       }
@@ -719,7 +719,7 @@ static int32_t spi_drv_SPI1_write(const void *buf, size_t size) {
   DMA_Cmd(SPI1_dma_channel, ENABLE);
 
   // Take lock (if lock hadn't been taken after timeout -- stop transaction)
-  if ((rc = xSemaphoreTake(SPI_dma_locks[0u], portIO_MAX_DELAY))) {
+  if ((rc = xSemaphoreTake(SPI_dma_locks[0u], portMAX_DELAY))) {
 
     DMA_DeInit(SPI1_dma_channel);
     DMA_Cmd(SPI1_dma_channel, DISABLE);
@@ -915,7 +915,7 @@ static int32_t spi_drv_SPI3_read(void *const buf, size_t size) {
   // if (size % sizeof(uint16_t)) {
   //   uint16_t from_queue[size / sizeof(uint16_t) + 1u];
   //   for (size_t n = 0u; n < sizeof(from_queue) / sizeof(uint16_t); n++) {
-  //     if ((rc = xQueueReceive(SPI_fifos[2u], &from_queue[n], portIO_MAX_DELAY)) != pdPASS) {
+  //     if ((rc = xQueueReceive(SPI_fifos[2u], &from_queue[n], portMAX_DELAY)) != pdPASS) {
   //       spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
   //       goto error;
   //     }
@@ -924,7 +924,7 @@ static int32_t spi_drv_SPI3_read(void *const buf, size_t size) {
   //   }
   // } else {
   //   for (size_t n = 0u; n < size / sizeof(uint16_t); n++) {
-  //     if ((rc = xQueueReceive(SPI_fifos[2u], reinterpret_cast<uint16_t *const>(buf) + n, portIO_MAX_DELAY)) != pdPASS) {
+  //     if ((rc = xQueueReceive(SPI_fifos[2u], reinterpret_cast<uint16_t *const>(buf) + n, portMAX_DELAY)) != pdPASS) {
   //       spi_drv_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
   //       goto error;
   //     }

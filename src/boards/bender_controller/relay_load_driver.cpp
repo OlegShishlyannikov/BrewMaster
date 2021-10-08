@@ -200,27 +200,21 @@ template <enum relay_loads_e relayload_no> static int32_t relay_load_drv_ioctl(u
     goto error;
   }
 
+  if (!(gpio = drv_ptr->dep("gpio"))) {
+    relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
+  if ((gpio_fd = ::open(gpio, "C", 3, 3u)) < 0) {
+    relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
   switch (req) {
   case RELAY_LOAD_ON: {
     const struct gpio_write_pin_req_s gpio_req { .pin = relayload_gpio_pins[relayload_no], .val = 1u };
-    if (!(gpio = drv_ptr->dep("gpio"))) {
-      relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-
-    if ((gpio_fd = ::open(gpio, "C", 3, 3u)) < 0) {
-      relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-
     if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_PIN_WRITE, &gpio_req, sizeof(gpio_req))) < 0) {
       // errno = ???
-      relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-
-    /* Close gpio/B file */
-    if ((rc = ::close(gpio, gpio_fd)) < 0) {
       relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }
@@ -228,24 +222,8 @@ template <enum relay_loads_e relayload_no> static int32_t relay_load_drv_ioctl(u
 
   case RELAY_LOAD_OFF: {
     const struct gpio_write_pin_req_s gpio_req { .pin = relayload_gpio_pins[relayload_no], .val = 0u };
-    if (!(gpio = drv_ptr->dep("gpio"))) {
-      relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-
-    if ((gpio_fd = ::open(gpio, "C", 3, 3u)) < 0) {
-      relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-
     if ((rc = ::ioctl(gpio, gpio_fd, gpio_ioctl_cmd_e::GPIO_PIN_WRITE, &gpio_req, sizeof(gpio_req))) < 0) {
       // errno = ???
-      relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-
-    /* Close gpio/B file */
-    if ((rc = ::close(gpio, gpio_fd)) < 0) {
       relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }
@@ -254,24 +232,8 @@ template <enum relay_loads_e relayload_no> static int32_t relay_load_drv_ioctl(u
   case RELAY_LOAD_GET_STATE: {
     const struct relay_load_get_state_req_s *state_req = static_cast<const struct relay_load_get_state_req_s *>(buf);
     uint16_t gpio_val;
-    if (!(gpio = drv_ptr->dep("gpio"))) {
-      relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-
-    if ((gpio_fd = ::open(gpio, "C", 3, 3u)) < 0) {
-      relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-
     if ((rc = ::read(gpio, gpio_fd, &gpio_val, sizeof(gpio_val))) < 0) {
       // errno = ???
-      relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
-      goto error;
-    }
-
-    /* Close gpio/B file */
-    if ((rc = ::close(gpio, gpio_fd)) < 0) {
       relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }
@@ -282,8 +244,19 @@ template <enum relay_loads_e relayload_no> static int32_t relay_load_drv_ioctl(u
   } break;
   }
 
+  /* Close gpio/C file */
+  if ((rc = ::close(gpio, gpio_fd)) < 0) {
+    relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+    goto error;
+  }
+
   return 0;
 error:
+  /* Close gpio/C file */
+  if ((rc = ::close(gpio, gpio_fd)) < 0) {
+    relay_load_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);
+  }
+
   return -1;
 }
 

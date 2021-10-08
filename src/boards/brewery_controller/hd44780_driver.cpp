@@ -118,7 +118,7 @@ static int32_t hd44780_flock() {
   }
 
   BaseType_t rc;
-  if ((rc = xSemaphoreTakeRecursive(hd44780_lock, portIO_MAX_DELAY)) != pdPASS) {
+  if ((rc = xSemaphoreTakeRecursive(hd44780_lock, portMAX_DELAY)) != pdPASS) {
     // errno = ???
 
     hd44780_printf("ERROR: %s:%i\r\n", __FILE__, __LINE__);

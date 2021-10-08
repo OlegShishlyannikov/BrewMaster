@@ -32,7 +32,7 @@ struct fn_tr_s_<Ret (Class::*)(Args...)> : mem_fn_tr_s<Ret (Class::*)(Args...)> 
 };
 } // namespace detail
 
-template <typename Fn> struct fn_tr_s : detail::fn_tr_s_<std::remove_cvref_t<Fn>> {};
+  template <typename Fn> struct fn_tr_s : detail::fn_tr_s_<typename std::remove_cvref<Fn>::type> {};
 
 template <typename Fn> constexpr const std::function<const typename fn_tr_s<Fn>::fn_t> to_std_function(const Fn &f) {
   return std::function<typename fn_tr_s<Fn>::fn_t>(f);
