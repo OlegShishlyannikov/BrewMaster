@@ -9,9 +9,10 @@ extern struct sys_impl_s &sys;
 static constexpr const char *uname = "root";
 static constexpr const char *system_name = "brewmaster_controller";
 static constexpr const char *homedir_name = "/";
+
 static constexpr const char *console_driver_name = "usart";
-static constexpr const char *console_device_name = "usart1";
-static constexpr const char *console_device_path = "usart/usart1";
+static constexpr const char *console_device_name = "usart2";
+static constexpr const char *console_device_path = "usart/usart2";
 
 static uint32_t cursor_x_pos = 0u;
 static uint32_t cursor_y_pos = 0u;

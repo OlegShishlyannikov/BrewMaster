@@ -15,8 +15,8 @@ extern struct sys_impl_s &sys;
 extern bool debug_log_enabled;
 
 static constexpr const char *console_driver_name = "usart";
-static constexpr const char *console_device_name = "usart1";
-static constexpr const char *console_device_path = "usart/usart1";
+static constexpr const char *console_device_name = "usart2";
+static constexpr const char *console_device_path = "usart/usart2";
 
 static int32_t init_clock();
 static int32_t init_console();
@@ -34,26 +34,25 @@ void init_task_code(void *args) {
     goto error_state;
   }
 
-  // if ((rc = init_console()) < 0) {
-    // goto error_state;
-  // }
+  if ((rc = init_console()) < 0) {
+    goto error_state;
+  }
 
   apps = sys.apps();
   app_num = sys.apps_num();
 
-  // shell_app = sys.app("shell");
-  // if (!(shell_app)) {
-  //   goto error_state;
-  // }
+  shell_app = sys.app("shell");
+  if (!(shell_app)) {
+    goto error_state;
+  }
 
   bender_app = sys.app("bender");
   if (!(bender_app)) {
     goto error_state;
   }
 
-  // xTaskCreate(shell_app->entry, shell_app->name, configMINIMAL_STACK_SIZE * 6u, args, 5u, &shell_task_handle);
+  xTaskCreate(shell_app->entry, shell_app->name, configMINIMAL_STACK_SIZE * 6u, args, 5u, &shell_task_handle);
   xTaskCreate(bender_app->entry, bender_app->name, configMINIMAL_STACK_SIZE * 32u, args, 8u, &bender_task_handle);
-  // xTaskCreate(modbus_app->entry, modbus_app->name, configMINIMAL_STACK_SIZE * 6u, args, 5u, &modbus_task_handle);
   
   while (true) {
     vTaskDelay(100u);

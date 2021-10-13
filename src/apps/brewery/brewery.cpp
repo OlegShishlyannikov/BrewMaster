@@ -16,6 +16,10 @@ extern lfs_file_t file;
 extern struct lfs_config lfs_cfg;
 extern bool debug_log_enabled;
 
+static constexpr const char *console_driver_name = "usart";
+static constexpr const char *console_device_name = "usart2";
+static constexpr const char *console_device_path = "usart/usart2";
+
 static constexpr const uint32_t heater_ac_load_num = 2u;
 
 static xSemaphoreHandle save_pending_semphr, menu_semphr, menu_variants_semphr, thermometer_proc_sem, brewery_proc_sem, temp_hold_proc_sem, temp_hold_timer_proc_sem;
@@ -422,13 +426,13 @@ int32_t brewery_app_s::brewery_dbg_printfmt(const char *fmt, ...) {
     goto exit;
   }
 
-  if (!(usart = sys.drv("usart"))) {
+  if (!(usart = sys.drv(console_driver_name))) {
     brewery_app_s::brewery_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, console_device_path, 3, 3u)) < 0) {
       brewery_app_s::brewery_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }
@@ -479,13 +483,13 @@ int32_t brewery_app_s::dbg_printfmt(const char *fmt, ...) {
   strlen = std::vsprintf(temp, fmt, arg);
   va_end(arg);
 
-  if (!(usart = sys.drv("usart"))) {
+  if (!(usart = sys.drv(console_driver_name))) {
     brewery_app_s::brewery_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, console_device_name, 3, 3u)) < 0) {
       brewery_app_s::brewery_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
       goto error;
     }
@@ -516,9 +520,9 @@ error:
 
 int32_t brewery_app_s::brewery_dbg_nprint(void *ptr, size_t n) {
   int32_t rc, usart_fd;
-  const struct drv_model_cmn_s *usart = sys.drv("usart");
+  const struct drv_model_cmn_s *usart = sys.drv(console_driver_name);
 
-  if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+  if ((usart_fd = ::open(usart, console_device_name, 3, 3u)) < 0) {
     brewery_app_s::brewery_dbg_printfmt("ERROR: %s:%i\r\n", __FILE__, __LINE__);
     goto error;
   }

@@ -7,6 +7,10 @@
 extern struct sys_impl_s &sys;
 extern bool debug_log_enabled;
 
+static constexpr const char *console_driver_name = "usart";
+static constexpr const char *console_device_name = "usart2";
+static constexpr const char *console_device_path = "usart/usart2";
+
 void reboot_app_s::entry(void *) {
   int32_t rc, rcc_fd;
   const struct drv_model_cmn_s *rcc;
@@ -48,12 +52,12 @@ int32_t reboot_app_s::reboot_printfmt(const char *fmt, ...) {
     goto exit;
   }
 
-  if (!(usart = sys.drv("usart"))) {
+  if (!(usart = sys.drv(console_driver_name))) {
     goto error;
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, console_device_path, 3, 3u)) < 0) {
       goto error;
     }
 
@@ -77,7 +81,7 @@ int32_t reboot_app_s::reboot_printfmt(const char *fmt, ...) {
     }
   }
 
- exit:
+exit:
   free(temp);
   return strlen;
 error:

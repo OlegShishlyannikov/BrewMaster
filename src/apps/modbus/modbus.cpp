@@ -8,8 +8,8 @@ extern struct sys_impl_s &sys;
 extern bool debug_log_enabled;
 
 static constexpr const char *console_driver_name = "usart";
-static constexpr const char *console_device_name = "usart1";
-static constexpr const char *console_device_path = "usart/usart1";
+static constexpr const char *console_device_name = "usart2";
+static constexpr const char *console_device_path = "usart/usart2";
 
 static uint8_t vfd_device_id = 1u;
 static uint16_t vfd_min_freq = 35u;

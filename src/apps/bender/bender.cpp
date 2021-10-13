@@ -13,8 +13,8 @@ static bool task_running, forward_running = false, backward_running = false;
 static xSemaphoreHandle state_sem;
 
 static constexpr const char *console_driver_name = "usart";
-static constexpr const char *console_device_name = "usart1";
-static constexpr const char *console_device_path = "usart/usart1";
+static constexpr const char *console_device_name = "usart2";
+static constexpr const char *console_device_path = "usart/usart2";
 
 static void beep_short();
 static void beep_long();

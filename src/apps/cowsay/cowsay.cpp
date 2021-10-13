@@ -7,6 +7,10 @@
 extern struct sys_impl_s &sys;
 extern bool debug_log_enabled;
 
+static constexpr const char *console_driver_name = "usart";
+static constexpr const char *console_device_name = "usart2";
+static constexpr const char *console_device_path = "usart/usart2";
+
 void cowsay_app_s::entry(void *args) {
   char **arglist;
   char *cl_buffer_copy;
@@ -59,13 +63,13 @@ char **cowsay_app_s::split_string_(char *str, const char *delim) {
 
   while (p) {
     n++;
-    res = static_cast<char **>(realloc(res, sizeof(char **) * n));
+    res = static_cast<char **>(std::realloc(res, sizeof(char **) * n));
     res[n - 1u] = p;
     p = std::strtok(nullptr, " ");
   }
 
   // Terminate list
-  res = static_cast<char **>(realloc(res, sizeof(char **) * n + 1u));
+  res = static_cast<char **>(std::realloc(res, sizeof(char **) * n + 1u));
   res[n] = nullptr;
   return res;
 }
@@ -82,12 +86,12 @@ int32_t cowsay_app_s::printfmt(const char *fmt, ...) {
   strlen = std::vsprintf(temp, fmt, arg);
   va_end(arg);
 
-  if (!(usart = sys.drv("usart"))) {
+  if (!(usart = sys.drv(console_driver_name))) {
     goto error;
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, console_device_name, 3, 3u)) < 0) {
       goto error;
     }
 
@@ -128,12 +132,12 @@ int32_t cowsay_app_s::cowsay_printfmt(const char *fmt, ...) {
     goto exit;
   }
 
-  if (!(usart = sys.drv("usart"))) {
+  if (!(usart = sys.drv(console_driver_name))) {
     goto error;
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, console_device_name, 3, 3u)) < 0) {
       goto error;
     }
 
@@ -157,7 +161,7 @@ int32_t cowsay_app_s::cowsay_printfmt(const char *fmt, ...) {
     }
   }
 
- exit:
+exit:
   free(temp);
   return strlen;
 error:

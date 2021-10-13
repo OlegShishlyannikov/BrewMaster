@@ -7,6 +7,10 @@
 extern struct sys_impl_s &sys;
 extern bool debug_log_enabled;
 
+static constexpr const char *console_driver_name = "usart";
+static constexpr const char *console_device_name = "usart2";
+static constexpr const char *console_device_path = "usart/usart2";
+
 void debug_app_s::entry(void *args) {
   char **arglist;
   size_t text_len;
@@ -23,13 +27,13 @@ void debug_app_s::entry(void *args) {
   if (arglist[1u]) {
     if (!std::strcmp(arglist[1u], "enable")) {
 
-	  debug_log_enabled = true;
+      debug_log_enabled = true;
       debug_printfmt("Enabled!\r\n");
     } else if (!std::strcmp(arglist[1u], "disable")) {
-	  
+
       debug_log_enabled = false;
       debug_printfmt("Disabled!\r\n");
-	  
+
     } else {
       debug_printfmt("Error!\r\n");
     }
@@ -78,12 +82,12 @@ int32_t debug_app_s::debug_printfmt(const char *fmt, ...) {
     goto exit;
   }
 
-  if (!(usart = sys.drv("usart"))) {
+  if (!(usart = sys.drv(console_driver_name))) {
     goto error;
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, console_device_path, 3, 3u)) < 0) {
       goto error;
     }
 
@@ -107,7 +111,7 @@ int32_t debug_app_s::debug_printfmt(const char *fmt, ...) {
     }
   }
 
- exit:
+exit:
   free(temp);
   return strlen;
 error:

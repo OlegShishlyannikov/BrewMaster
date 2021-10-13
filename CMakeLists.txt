@@ -26,12 +26,12 @@ message("CMake CXX compiler is ${CMAKE_CXX_COMPILER}")
 
 set(C_SYSTEM_HEADERS_PATH "/home/user/CrossCompile/gcc-arm-10.3-2021.07-x86_64-arm-none-eabi/arm-none-eabi/include/")
 set(CXX_SYSTEM_HEADERS_PATH "/home/user/CrossCompile/gcc-arm-10.3-2021.07-x86_64-arm-none-eabi/arm-none-eabi/include/c++/10.3.1/")
-set(LD_LIBRARY_PATH "/usr/arm-none-eabi/lib")
+set(LD_LIBRARY_PATH "/usr/lib/arm-none-eabi/lib")
 
 set(CMAKE_ASM_FLAGS "-mthumb -mcpu=cortex-m3 -D${PROJECT_NAME_CAP}_APP" CACHE INTERNAL "CMake asm flags")
 set(CMAKE_C_FLAGS "-O0 -g -pipe -mthumb -mcpu=cortex-m3 -std=gnu11 -ffunction-sections -fomit-frame-pointer -fdata-sections -fno-builtin -Wl,--gc-sections -D${PROJECT_NAME_CAP}_APP" CACHE INTERNAL "CMake c flags")
 set(CMAKE_CXX_FLAGS "-O0 -g -pipe -mthumb -mcpu=cortex-m3 -std=gnu++20 -flto -ffunction-sections -fomit-frame-pointer -fdata-sections -fno-builtin -Wl,--gc-sections -fconcepts-diagnostics-depth=4 -D${PROJECT_NAME_CAP}_APP" CACHE INTERNAL "CMake cxx flags")
-set(CMAKE_EXE_LINKER_FLAGS "-O0 -g -pipe -mthumb -mcpu=cortex-m3 -flto -ffunction-sections -fomit-frame-pointer -fdata-sections -fno-builtin -Wl,--gc-sections -Wl,--no-wchar-size-warning --specs=nosys.specs -Wl,-Map,${CMAKE_PROJECT_NAME}.map -u _printf_float -u _scanf_float -D${PROJECT_NAME_CAP}_APP" CACHE INTERNAL "CMake exe linker flags")
+set(CMAKE_EXE_LINKER_FLAGS "-O0 -g -pipe -mthumb -mcpu=cortex-m3 -flto -ffunction-sections -fomit-frame-pointer -fdata-sections -fno-builtin -Wl,--gc-sections -Wl,--no-wchar-size-warning --specs=nosys.specs --specs=nano.specs -Wl,-Map,${CMAKE_PROJECT_NAME}.map -u _printf_float -u _scanf_float -D${PROJECT_NAME_CAP}_APP -L${LD_LIBRARY_PATH}" CACHE INTERNAL "CMake exe linker flags")
 
 set(LINKER_SCRIPT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ldscripts)
 set(LDMEM_SCRIPT ${LINKER_SCRIPT_DIR}/mem.ld)

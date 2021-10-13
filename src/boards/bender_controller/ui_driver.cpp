@@ -30,7 +30,7 @@ extern xQueueHandle events_worker_queue;
 static constexpr uint8_t btn1_5_pin = 0u, btn6_9_pin = 1u, pedal_pin = 15u;
 static constexpr const char *btn_pin_gpio_port_letter = "C";
 static constexpr uint32_t ui_drv_buffer_size = 32u;
-static constexpr const char *const console_devstr = "usart1";
+static constexpr const char *const console_devstr = "usart2";
 
 static constexpr const uint16_t segment_digits[] = {0b01111110, 0b1100, 0b10110110, 0b10011110, 0b11001100, 0b11011010, 0b11111010, 0b1110, 0b11111110, 0b11011110, 0b0};
 static constexpr const uint16_t segment_minus = 0b10000000;

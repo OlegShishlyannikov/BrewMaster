@@ -7,9 +7,11 @@
 extern struct sys_impl_s &sys;
 extern bool debug_log_enabled;
 
-void clear_app_s::entry(void *) {
-  clear_printfmt("%s%s", ASCII_CONTROL_ERASE_SCREEN, ASCII_CONTROL_CURSOR_HOME);
-}
+static constexpr const char *console_driver_name = "usart";
+static constexpr const char *console_device_name = "usart2";
+static constexpr const char *console_device_path = "usart/usart2";
+
+void clear_app_s::entry(void *) { clear_printfmt("%s%s", ASCII_CONTROL_ERASE_SCREEN, ASCII_CONTROL_CURSOR_HOME); }
 
 int32_t clear_app_s::clear_printfmt(const char *fmt, ...) {
   int32_t rc, usart_fd, strlen;
@@ -23,12 +25,12 @@ int32_t clear_app_s::clear_printfmt(const char *fmt, ...) {
   strlen = std::vsprintf(temp, fmt, arg);
   va_end(arg);
 
-  if (!(usart = sys.drv("usart"))) {
+  if (!(usart = sys.drv(console_driver_name))) {
     goto error;
   }
 
   if (strlen) {
-    if ((usart_fd = ::open(usart, "usart1", 3, 3u)) < 0) {
+    if ((usart_fd = ::open(usart, console_device_name, 3, 3u)) < 0) {
       goto error;
     }
 
@@ -52,7 +54,7 @@ int32_t clear_app_s::clear_printfmt(const char *fmt, ...) {
     }
   }
 
- exit:
+exit:
   free(temp);
   return strlen;
 error:

@@ -120,7 +120,7 @@ static const struct drv_model_cmn_s *modules[] = {&rcc, &gpio, &usart, &rtc, &bu
                                            &modbus, &vfd};
 
 // Applications
-// static struct app_s shell_app = {.name = "shell", .entry = shell_app_s::entry};
+static struct app_s shell_app = {.name = "shell", .entry = shell_app_s::entry};
 static struct app_s clear_app = {.name = "clear", .entry = clear_app_s::entry};
 static struct app_s cowsay_app = {.name = "cowsay", .entry = cowsay_app_s::entry};
 static struct app_s debug_app = {.name = "debug", .entry = debug_app_s::entry};
@@ -130,7 +130,7 @@ static struct app_s bender_app = {.name = "bender", .entry = bender_app_s::entry
 
 // Application array
 const struct app_s *apps[]{
-    // &shell_app,
+    &shell_app,
     &clear_app, &cowsay_app, &debug_app, &reboot_app,
 	  &modbus_test_app,
     &bender_app

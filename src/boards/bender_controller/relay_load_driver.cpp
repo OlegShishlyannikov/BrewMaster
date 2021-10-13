@@ -18,7 +18,7 @@ extern xQueueHandle events_worker_queue;
 static constexpr const uint32_t relayloads_num = 2u;
 extern bool debug_log_enabled;
 
-static constexpr const char *console_devstr = "usart1";
+static constexpr const char *console_devstr = "usart2";
 
 /* AC load locks */
 static xSemaphoreHandle relayload_locks[relayloads_num];

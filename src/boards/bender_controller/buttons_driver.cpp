@@ -17,7 +17,7 @@
 static const struct drv_model_cmn_s *drv_ptr;
 extern xQueueHandle events_worker_queue;
 
-static constexpr const char *buttons_drv_console_devstr = "usart1";
+static constexpr const char *buttons_drv_console_devstr = "usart2";
 // Global flags
 extern bool debug_log_enabled;
 

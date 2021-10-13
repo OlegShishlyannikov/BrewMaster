@@ -21,7 +21,7 @@ extern bool debug_log_enabled;
 
 /* Latch, clock and data pins used */
 static constexpr const char *modbus_drv_usart_devstr = "usart1";
-static constexpr const char *console_devstr = "usart1";
+static constexpr const char *console_devstr = "usart2";
 
 /* 74HC595 lock & fifos */
 static xSemaphoreHandle modbus_lock;

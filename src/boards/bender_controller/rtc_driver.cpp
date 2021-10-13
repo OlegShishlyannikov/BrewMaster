@@ -20,7 +20,7 @@ static const struct drv_model_cmn_s *drv_ptr;
 static xSemaphoreHandle rtc_lock;
 extern xQueueHandle events_worker_queue;
 
-static constexpr const char *console_devstr = "usart1";
+static constexpr const char *console_devstr = "usart2";
 
 static bool rtc_gettime(struct rtc_s *const);  /* Get time */
 static bool rtc_settime(const struct rtc_s *); /* Set time */
